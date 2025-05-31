@@ -1,0 +1,4001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BOID Simulation - Debug Version (Chaos Disabled)</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+            min-width: 300px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-section {
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .section-title {
+            font-size: 14px;
+            color: #ff9f1c;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .section-title.general { color: #66ff66; }
+        .section-title.prey { color: #4ecdc4; }
+        .section-title.predator { color: #ff6b6b; }
+        .section-title.chaos { color: #ff66ff; }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            color: #66d9ef;
+            font-weight: bold;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            margin-bottom: 5px;
+            appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, #ff6b6b, #4ecdc4);
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        
+        .value-display {
+            font-size: 11px;
+            color: #a8d8ea;
+            text-align: center;
+        }
+        
+        #predatorBalanceControl {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        #predatorBalanceControl label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: #ff9f1c;
+            text-align: center;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        #predatorBalance {
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        .balance-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #aaa;
+            margin-top: 5px;
+        }
+        
+        .balance-labels .fish-side {
+            color: #ff6b6b;
+        }
+        
+        .balance-labels .boid-side {
+            color: #4ecdc4;
+        }
+        
+        .balance-value {
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 10px 0;
+            padding: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+        }
+        
+        #dualHealthBar {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 40px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            overflow: hidden;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #fishHealthBar {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 50%;
+            background: linear-gradient(90deg, #1e90ff 0%, #4169e1 50%, #6495ed 100%);
+            transition: all 0.3s ease;
+            transform-origin: right center;
+        }
+        
+        #boidHealthBar {
+            position: absolute;
+            right: 0;
+            top: 0;
+            height: 100%;
+            width: 50%;
+            background: linear-gradient(90deg, #ffa500 0%, #ff8c00 50%, #ff7f50 100%);
+            transition: all 0.3s ease;
+            transform-origin: left center;
+        }
+        
+        #healthBarDivider {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            z-index: 10;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        
+        .health-label {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
+            z-index: 5;
+        }
+        
+        .health-label.fish {
+            left: 20px;
+        }
+        
+        .health-label.boid {
+            right: 20px;
+        }
+        
+        .predator-glow {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+            opacity: 0;
+        }
+        
+        .predator-glow.fish-dominant {
+            background: radial-gradient(ellipse at center, rgba(255, 107, 107, 0.1) 0%, transparent 70%);
+            opacity: 1;
+        }
+        
+        .predator-glow.boid-dominant {
+            background: radial-gradient(ellipse at center, rgba(78, 205, 196, 0.1) 0%, transparent 70%);
+            opacity: 1;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .checkbox-group label {
+            margin: 0;
+            cursor: pointer;
+            color: #4ecdc4;
+        }
+        
+        #stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            min-width: 250px;
+        }
+        
+        .stat-line {
+            margin: 5px 0;
+            font-size: 12px;
+        }
+        
+        .stat-value {
+            color: #4ecdc4;
+            font-weight: bold;
+        }
+        
+        .performance-stat {
+            color: #66ff66;
+            font-weight: bold;
+        }
+        
+        .warning-stat {
+            color: #ff9f1c;
+            font-weight: bold;
+        }
+        
+        .stat-section {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #fff;
+            text-align: center;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .mode-indicator {
+            text-align: center;
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+        }
+        
+        #trendGraph {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        #trendCanvas {
+            display: block;
+            image-rendering: pixelated;
+        }
+        
+        .trend-title {
+            font-size: 12px;
+            color: #ff9f1c;
+            text-align: center;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .trend-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .graph-container {
+            position: relative;
+        }
+        
+        .y-axis-labels {
+            position: absolute;
+            left: -55px;
+            top: 0;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            font-size: 8px;
+            color: #999;
+            width: 50px;
+            text-align: right;
+            line-height: 1.2;
+        }
+        
+        .y-axis-labels span {
+            display: block;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .info-bubble {
+            position: absolute;
+            right: 5px;
+            top: 2px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #aaa;
+            cursor: help;
+            transition: all 0.2s ease;
+            z-index: 10;
+        }
+        
+        .info-bubble:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+            color: #fff;
+            transform: scale(1.1);
+        }
+        
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            line-height: 1.4;
+            width: 200px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            z-index: 1000;
+            bottom: 25px;
+            right: 0;
+        }
+        
+        .tooltip.visible {
+            opacity: 1;
+        }
+        
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            right: 10px;
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 6px solid rgba(0, 0, 0, 0.95);
+        }
+        
+        .current-value {
+            position: absolute;
+            right: 10px;
+            top: 5px;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 3px;
+            background: rgba(0, 0, 0, 0.7);
+        }
+        
+        .perf-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            color: #66ff66;
+            z-index: 101;
+        }
+        
+        .perf-warning {
+            color: #ff9f1c !important;
+        }
+        
+        .perf-critical {
+            color: #ff4444 !important;
+        }
+        
+        .game-over-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: #ff4444;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            border: 2px solid #ff4444;
+            display: none;
+            z-index: 200;
+        }
+        
+        #info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: white;
+            font-size: 12px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            max-width: 300px;
+        }
+        
+        #chaosVisualization {
+            position: absolute;
+            bottom: 140px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        #phaseSpaceCanvas {
+            display: block;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 5px;
+        }
+        
+        .chaos-indicator {
+            font-size: 11px;
+            color: #ff66ff;
+            margin: 5px 0;
+        }
+        
+        .vortex-effect {
+            position: absolute;
+            pointer-events: none;
+            opacity: 0.3;
+            animation: vortexRotate 5s linear infinite;
+        }
+        
+        @keyframes vortexRotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .butterfly-indicator {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: butterflyPulse 0.5s ease-out;
+        }
+        
+        @keyframes butterflyPulse {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(3); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="perf-indicator">
+        <span id="perfBoids">0</span> boids @ <span id="perfFPS">60</span> FPS
+        <div id="perfMode" style="font-size: 10px; margin-top: 2px;">Performance: Normal</div>
+    </div>
+
+    <div id="dualHealthBar">
+        <div id="fishHealthBar"></div>
+        <div id="boidHealthBar"></div>
+        <div id="healthBarDivider"></div>
+        <div class="health-label fish" id="fishHealthLabel">Big Fish: 100%</div>
+        <div class="health-label boid" id="boidHealthLabel">Boids: 100%</div>
+    </div>
+
+    <div class="predator-glow" id="predatorGlow"></div>
+
+    <div id="controls">
+        <div class="title">Chaotic BOID Simulation</div>
+        
+        <div class="mode-indicator">
+            <strong>Predator Balance</strong>
+            <div class="balance-value" id="balanceValueDisplay">Big Fish: 100%</div>
+        </div>
+        
+        <div id="predatorBalanceControl">
+            <label for="predatorBalance">Food Chain Advantage</label>
+            <input type="range" id="predatorBalance" min="0" max="1" step="0.01" value="0">
+            <div class="balance-labels">
+                <span class="fish-side">🦈 Big Fish</span>
+                <span class="boid-side">Boid Swarm 🐟</span>
+            </div>
+        </div>
+        
+        <div class="control-section">
+            <div class="section-title chaos">🦋 Chaos Controls</div>
+            <div class="control-group">
+                <label>Global Chaos Level</label>
+                <input type="range" id="chaosLevel" min="0" max="1" step="0.05" value="0.1">
+                <div class="value-display" id="chaosLevelValue">0.1</div>
+            </div>
+            
+            <div class="control-group">
+                <label>Butterfly Effect Strength</label>
+                <input type="range" id="butterflyStrength" min="0" max="2" step="0.1" value="0.1">
+                <div class="value-display" id="butterflyStrengthValue">0.1</div>
+            </div>
+            
+            <div class="control-group">
+                <label>Turbulence Intensity</label>
+                <input type="range" id="turbulenceIntensity" min="0" max="1" step="0.05" value="0.1">
+                <div class="value-display" id="turbulenceIntensityValue">0.1</div>
+            </div>
+            
+            <div class="control-group">
+                <label>Lévy Flight Probability (%)</label>
+                <input type="range" id="levyProbability" min="0" max="5" step="0.1" value="0.1">
+                <div class="value-display" id="levyProbabilityValue">0.1%</div>
+            </div>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="enableVortices">
+                <label for="enableVortices">Enable Vortex Generation</label>
+            </div>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="showChaosIndicators">
+                <label for="showChaosIndicators">Show Chaos Indicators</label>
+            </div>
+        </div>
+        
+        <div class="control-section">
+            <div class="section-title general">General Settings</div>
+            <div class="control-group">
+                <label>Boid Count</label>
+                <input type="range" id="particleCount" min="10" max="3000" step="10" value="200">
+                <div class="value-display" id="particleCountValue">200</div>
+            </div>
+            
+            <div class="control-group">
+                <label>Speed Transition Smoothing</label>
+                <input type="range" id="speedSmoothing" min="0.05" max="0.3" step="0.05" value="0.15">
+                <div class="value-display" id="speedSmoothingValue">0.15</div>
+            </div>
+            
+            <div class="control-group">
+                <label>Boundary Avoidance Strength</label>
+                <input type="range" id="boundaryStrength" min="1" max="10" step="0.5" value="5.0">
+                <div class="value-display" id="boundaryStrengthValue">5.0</div>
+            </div>
+            
+            <div class="control-group">
+                <label>Flock Update Frequency (frames)</label>
+                <input type="range" id="flockUpdateFreq" min="5" max="60" step="5" value="10">
+                <div class="value-display" id="flockUpdateFreqValue">10</div>
+            </div>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="enableFlockCenters" checked>
+                <label for="enableFlockCenters">Enable Flock Centers (Orange Dots)</label>
+            </div>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="showFlockGlobalLines" checked>
+                <label for="showFlockGlobalLines">Show Flock → Global Lines</label>
+            </div>
+        </div>
+        
+        <div class="control-section">
+            <div class="section-title prey" id="preyTitle">Prey Behavior (Boids)</div>
+            <div class="control-group">
+                <label>Calm Speed</label>
+                <input type="range" id="preyCalmSpeed" min="0.5" max="3" step="0.1" value="1.2">
+                <div class="value-display" id="preyCalmSpeedValue">1.2</div>
+            </div>
+            
+            <div class="control-group">
+                <label>Escape Speed</label>
+                <input type="range" id="preyEscapeSpeed" min="2" max="10" step="0.25" value="4.5">
+                <div class="value-display" id="preyEscapeSpeedValue">4.5</div>
+            </div>
+            
+            <div class="control-group">
+                <label>Detection Range</label>
+                <input type="range" id="preyDetectionRange" min="40" max="150" step="5" value="80">
+                <div class="value-display" id="preyDetectionRangeValue">80</div>
+            </div>
+            
+            <div class="control-group">
+                <label>Escape Force (Agility)</label>
+                <input type="range" id="preyEscapeForce" min="1" max="5" step="0.1" value="2.5">
+                <div class="value-display" id="preyEscapeForceValue">2.5</div>
+            </div>
+        </div>
+        
+        <div class="control-section">
+            <div class="section-title predator" id="predatorTitle">Predator Behavior (Big Fish)</div>
+            <div class="control-group">
+                <label>Wander Speed</label>
+                <input type="range" id="predatorWanderSpeed" min="0.5" max="3" step="0.1" value="1.2">
+                <div class="value-display" id="predatorWanderSpeedValue">1.2</div>
+            </div>
+            
+            <div class="control-group">
+                <label>Hunt Speed</label>
+                <input type="range" id="predatorHuntSpeed" min="2" max="8" step="0.25" value="4.5">
+                <div class="value-display" id="predatorHuntSpeedValue">4.5</div>
+            </div>
+            
+            <div class="control-group">
+                <label>Detection Range</label>
+                <input type="range" id="predatorDetectionRange" min="50" max="200" step="10" value="120">
+                <div class="value-display" id="predatorDetectionRangeValue">120</div>
+            </div>
+            
+            <div class="control-group">
+                <label>Hunt Force (Inertia)</label>
+                <input type="range" id="predatorHuntForce" min="0.3" max="2" step="0.1" value="0.8">
+                <div class="value-display" id="predatorHuntForceValue">0.8</div>
+            </div>
+        </div>
+        
+        <div class="control-section">
+            <div class="section-title">Flocking Behavior</div>
+            <div class="control-group">
+                <label>Separation Strength</label>
+                <input type="range" id="separation" min="0" max="3" step="0.1" value="1.5">
+                <div class="value-display" id="separationValue">1.5</div>
+            </div>
+            
+            <div class="control-group">
+                <label>Alignment Strength</label>
+                <input type="range" id="alignment" min="0" max="3" step="0.1" value="1.0">
+                <div class="value-display" id="alignmentValue">1.0</div>
+            </div>
+            
+            <div class="control-group">
+                <label>Cohesion Strength</label>
+                <input type="range" id="cohesion" min="0" max="3" step="0.1" value="1.0">
+                <div class="value-display" id="cohesionValue">1.0</div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="stats">
+        <div class="title" style="font-size: 14px; margin-bottom: 10px;">Simulation Statistics</div>
+        
+        <div class="mode-indicator" style="font-size: 11px; padding: 5px;">
+            <span id="roleSummary">Prey: Boids | Predator: Big Fish</span>
+        </div>
+        
+        <div class="stat-section">
+            <strong>Population</strong>
+            <div class="stat-line">Starting Boids: <span class="stat-value" id="startingBoidCount">200</span></div>
+            <div class="stat-line">Living Boids: <span class="stat-value" id="livingBoidCount">200</span></div>
+            <div class="stat-line">Active Flocks: <span class="stat-value" id="activeFlocks">0</span></div>
+            <div class="stat-line">Calm Boids: <span class="stat-value" id="calmCount">-</span></div>
+            <div class="stat-line">Threatened Boids: <span class="stat-value" id="threatenedCount">-</span></div>
+            <div class="stat-line"><span id="entityStateLabel">Big Fish State</span>: <span class="stat-value" id="entityState">-</span></div>
+        </div>
+        
+        <div class="stat-section">
+            <strong>Chaos Metrics</strong>
+            <div class="stat-line">System Regime: <span class="stat-value" id="chaosRegime">stable</span></div>
+            <div class="stat-line">Active Vortices: <span class="stat-value" id="activeVortices">0</span></div>
+            <div class="stat-line">Butterfly Cascades: <span class="stat-value" id="butterflyCascades">0</span></div>
+            <div class="stat-line">Exploring Boids: <span class="stat-value" id="exploringBoids">0</span></div>
+            <div class="stat-line">Lyapunov λ: <span class="stat-value" id="lyapunovExponent">0.000</span></div>
+        </div>
+        
+        <div class="stat-section">
+            <strong>Performance</strong>
+            <div class="stat-line">FPS: <span class="performance-stat" id="fpsDisplay">60</span></div>
+            <div class="stat-line">Update Time: <span class="performance-stat" id="updateTime">0</span>ms</div>
+            <div class="stat-line">Performance Mode: <span class="performance-stat" id="perfModeText">Normal</span></div>
+            <div class="stat-line">Flock Updates: <span class="stat-value" id="flockUpdateFreq">Every 10 frames</span></div>
+            <div class="stat-line">Successful Bites: <span class="stat-value" id="biteCount">0</span></div>
+        </div>
+    </div>
+    
+    <div id="chaosVisualization">
+        <div class="trend-title">Phase Space Velocity</div>
+        <canvas id="phaseSpaceCanvas" width="150" height="150"></canvas>
+        <div class="chaos-indicator">
+            <span style="color: #ff6666;">●</span> Predator Phase
+            <span style="color: #66ff66;">●</span> Prey Phase
+        </div>
+    </div>
+    
+    <div id="distanceGraph" style="position: absolute; bottom: 310px; right: 20px; background: rgba(0, 0, 0, 0.8); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 10px; padding: 10px; backdrop-filter: blur(10px);">
+        <div style="position: relative;">
+            <div class="trend-title" id="distanceGraphTitle">Who's Winning?</div>
+            <div class="info-bubble" id="distanceInfoBubble">i</div>
+            <div class="tooltip" id="distanceTooltip">
+                <strong>Distance Trend Graph</strong><br><br>
+                Tracks the average distance between the predator and prey over time. When the line goes up, prey are escaping. When it goes down, the predator is closing in. The color changes to show who has the momentum!
+            </div>
+        </div>
+        <div class="graph-container">
+            <div class="y-axis-labels" id="distanceYLabels">
+                <span>Escaping</span>
+                <span>Even</span>
+                <span>Caught</span>
+            </div>
+            <canvas id="distanceCanvas" width="200" height="100" style="display: block; image-rendering: pixelated; margin-left: 60px;"></canvas>
+            <div class="current-value" id="distanceCurrentValue" style="color: #1e90ff;">0</div>
+        </div>
+        <div class="trend-labels" style="margin-left: 50px;">
+            <span id="distanceLeftLabel" style="color: #ff6b6b;">Predator Closing ↓</span>
+            <span id="distanceRightLabel" style="color: #1e90ff;">↑ Prey Escaping</span>
+        </div>
+    </div>
+    
+    <div id="trendGraph">
+        <div style="position: relative;">
+            <div class="trend-title" id="tacticalGraphTitle">Tactical Balance</div>
+            <div class="info-bubble" id="tacticalInfoBubble">i</div>
+            <div class="tooltip" id="tacticalTooltip">
+                <strong>Tactical Balance Graph</strong><br><br>
+                Shows the overall tactical advantage based on multiple factors:<br>
+                • Formation strength (flocking efficiency)<br>
+                • Successful attacks and defensive actions<br>
+                • Health status and momentum<br>
+                • Strategic positioning advantage
+            </div>
+        </div>
+        <div class="graph-container">
+            <div class="y-axis-labels" id="tacticalYLabels">
+                <span>Winning</span>
+                <span>Balanced</span>
+                <span>Losing</span>
+            </div>
+            <canvas id="trendCanvas" width="200" height="100" style="margin-left: 60px;"></canvas>
+            <div class="current-value" id="tacticalCurrentValue" style="color: #4ecdc4;">0</div>
+        </div>
+        <div class="trend-labels" style="margin-left: 50px;">
+            <span id="tacticalLeftLabel" style="color: #ff6b6b;">Predator Advantage ↓</span>
+            <span id="tacticalRightLabel" style="color: #4ecdc4;">↑ Prey Advantage</span>
+        </div>
+    </div>
+    
+    <div id="info">
+        <strong>Chaotic BOID Simulation (Debug Mode)</strong><br><br>
+        <strong>Controls:</strong><br>
+        • Mouse drag: Rotate view<br>
+        • Scroll: Zoom in/out<br><br>
+        <strong>Debug Changes:</strong><br>
+        • <strong style="color: #66ff66;">Chaos disabled</strong> for stability<br>
+        • <strong style="color: #66ff66;">Simplified physics</strong> with drag<br>
+        • <strong style="color: #66ff66;">Better boundaries</strong> with soft reflection<br>
+        • <strong style="color: #66ff66;">Stable rotation</strong> to prevent spinning<br><br>
+        <strong>Known Issues Fixed:</strong><br>
+        • Boids getting stuck in place<br>
+        • Wild spinning when stationary<br>
+        • Boundary conflicts<br>
+        • Force cancellation
+    </div>
+    
+    <div id="gameOverMessage" class="game-over-message">
+        🏆 Victory! 🏆<br>
+        <span style="font-size: 16px; color: #fff;">Adjust settings to play again.</span>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // ===== CHAOS THEORY SYSTEMS (TONED DOWN) =====
+        
+        // Lorenz Attractor System - HEAVILY REDUCED
+        class ChaoticBoidSystem {
+            constructor() {
+                this.lorenz = { x: 1, y: 1, z: 1 };
+                this.chaosParams = { sigma: 10, rho: 28, beta: 8/3 };
+                this.chaosScale = 0.001; // REDUCED from 0.01
+                this.globalChaosLevel = 0.1; // REDUCED from 0.3
+            }
+            
+            updateGlobalChaos(dt) {
+                // REDUCED: Only update occasionally
+                if (frameCount % 10 !== 0) return;
+                
+                const { sigma, rho, beta } = this.chaosParams;
+                const { x, y, z } = this.lorenz;
+                
+                // Classic Lorenz equations with reduced step
+                this.lorenz.x += sigma * (y - x) * dt * 0.1; // REDUCED from 0.5
+                this.lorenz.y += (x * (rho - z) - y) * dt * 0.1;
+                this.lorenz.z += (x * y - beta * z) * dt * 0.1;
+                
+                // Keep values bounded
+                const maxVal = 10; // REDUCED from 30
+                this.lorenz.x = Math.max(-maxVal, Math.min(maxVal, this.lorenz.x));
+                this.lorenz.y = Math.max(-maxVal, Math.min(maxVal, this.lorenz.y));
+                this.lorenz.z = Math.max(-maxVal, Math.min(maxVal, this.lorenz.z));
+                
+                // Reset if values become extreme
+                if (!isFinite(this.lorenz.x) || !isFinite(this.lorenz.y) || !isFinite(this.lorenz.z)) {
+                    this.lorenz = { x: 1, y: 1, z: 1 };
+                }
+            }
+            
+            applyChaoticSteering(boid, baseSteering) {
+                // REDUCED: Only apply to 10% of boids
+                if (Math.random() > 0.1) return baseSteering;
+                
+                const offset = boid.id * 0.1;
+                
+                const chaosX = this.lorenz.x * Math.sin(offset + Date.now() * 0.00001) * this.chaosScale;
+                const chaosY = this.lorenz.y * Math.cos(offset + Date.now() * 0.00001) * this.chaosScale;
+                const chaosZ = this.lorenz.z * Math.sin(offset * 0.5 + Date.now() * 0.00001) * this.chaosScale;
+                
+                // Strict validation
+                if (!isFinite(chaosX) || !isFinite(chaosY) || !isFinite(chaosZ) ||
+                    Math.abs(chaosX) > 0.1 || Math.abs(chaosY) > 0.1 || Math.abs(chaosZ) > 0.1) {
+                    return baseSteering;
+                }
+                
+                const chaos = getVector(chaosX, chaosY, chaosZ);
+                chaos.multiplyScalar(boid.chaosReceptivity * this.globalChaosLevel * 0.1); // Extra reduction
+                
+                baseSteering.add(chaos);
+                releaseVector(chaos);
+                
+                return baseSteering;
+            }
+        }
+        
+        // Butterfly Effect System - MINIMAL IMPACT
+        class ButterflyEffectSystem {
+            constructor() {
+                this.perturbations = [];
+                this.cascadeThreshold = 0.1; // INCREASED from 0.01 (harder to trigger)
+                this.amplificationFactor = 1.01; // REDUCED from 1.1
+                this.maxCascadeLevel = 3; // REDUCED from 10
+                this.butterflyStrength = 0.1; // REDUCED from 1.0
+                this.enabled = false; // DISABLED by default
+            }
+            
+            injectPerturbation(position, magnitude = 0.0001) {
+                if (!this.enabled) return; // Skip if disabled
+                
+                const perturbation = {
+                    id: Math.random(),
+                    position: position.clone(),
+                    magnitude: magnitude * this.butterflyStrength * 0.1, // Extra reduction
+                    timestamp: Date.now(),
+                    cascadeLevel: 0,
+                    affectedBoids: new Set()
+                };
+                
+                this.perturbations.push(perturbation);
+                
+                // Visual indicator
+                if (behaviorParams.showChaosIndicators) {
+                    const indicator = document.createElement('div');
+                    indicator.className = 'butterfly-indicator';
+                    indicator.style.left = `${position.x + window.innerWidth/2}px`;
+                    indicator.style.top = `${-position.y + window.innerHeight/2}px`;
+                    document.body.appendChild(indicator);
+                    setTimeout(() => indicator.remove(), 500);
+                }
+                
+                return perturbation;
+            }
+            
+            propagateCascade(boids, spatialGrid) {
+                if (!this.enabled) {
+                    this.perturbations = []; // Clear any existing
+                    return 0;
+                }
+                
+                const now = Date.now();
+                this.perturbations = this.perturbations.filter(p => 
+                    now - p.timestamp < 1000 && p.cascadeLevel < this.maxCascadeLevel // REDUCED from 5000
+                );
+                
+                this.perturbations.forEach(perturbation => {
+                    const cascadeRadius = 20 * (1 + perturbation.cascadeLevel * 0.2); // REDUCED from 50
+                    const neighbors = spatialGrid.getNeighbors(perturbation.position, cascadeRadius);
+                    
+                    neighbors.forEach(boid => {
+                        if (perturbation.affectedBoids.has(boid.id)) return;
+                        
+                        const dist = boid.position.distanceTo(perturbation.position);
+                        const influence = perturbation.magnitude * 
+                            Math.exp(-dist / cascadeRadius) * 
+                            Math.pow(this.amplificationFactor, perturbation.cascadeLevel);
+                        
+                        if (influence > this.cascadeThreshold) {
+                            const angle = Math.atan2(
+                                boid.position.y - perturbation.position.y,
+                                boid.position.x - perturbation.position.x
+                            );
+                            
+                            const force = getVector(
+                                Math.cos(angle) * influence * 0.1, // Extra reduction
+                                Math.sin(angle) * influence * 0.1,
+                                (Math.random() - 0.5) * influence * 0.05
+                            );
+                            
+                            // Clamp force magnitude
+                            force.clampLength(0, 0.05); // REDUCED from 0.5
+                            
+                            boid.velocity.add(force);
+                            releaseVector(force);
+                            
+                            perturbation.affectedBoids.add(boid.id);
+                            boid.lastCascadeLevel = perturbation.cascadeLevel;
+                        }
+                    });
+                    
+                    perturbation.cascadeLevel++;
+                });
+                
+                return this.perturbations.length;
+            }
+        }
+        
+        // SIMPLIFIED Biological Chaos System
+        class BiologicalChaosSystem {
+            constructor() {
+                // Empty - no chaos
+            }
+            
+            initializeBoid(boid) {
+                // NO individual variations for now - all boids behave the same
+                boid.maxSpeed = 1.0;
+                boid.chaosReceptivity = 0;
+                boid.turnBias = 0;
+                boid.speedPreference = 1.0;
+            }
+        }
+        
+        // Turbulence Field System - HEAVILY REDUCED
+        class TurbulenceField {
+            constructor(width, height, depth) {
+                this.width = width;
+                this.height = height;
+                this.depth = depth;
+                this.noiseScale = 0.001; // REDUCED from 0.01
+                this.timeScale = 0.01; // REDUCED from 0.1
+                this.vortices = [];
+                this.maxVortices = 2; // REDUCED from 5
+                this.turbulenceIntensity = 0.1; // REDUCED from 0.3
+                this.enabled = false; // DISABLED by default
+                
+                // Pre-calculated noise grid
+                this.noiseGrid = [];
+                this.gridResolution = 10; // REDUCED from 20
+                this.initializeNoiseGrid();
+            }
+            
+            initializeNoiseGrid() {
+                for (let i = 0; i < this.gridResolution; i++) {
+                    this.noiseGrid[i] = [];
+                    for (let j = 0; j < this.gridResolution; j++) {
+                        this.noiseGrid[i][j] = [];
+                        for (let k = 0; k < this.gridResolution; k++) {
+                            this.noiseGrid[i][j][k] = Math.random();
+                        }
+                    }
+                }
+            }
+            
+            sampleNoise(x, y, z, time) {
+                // Return minimal noise if disabled
+                if (!this.enabled) return 0.5;
+                
+                const tx = Math.abs((x / this.width + 0.5) * this.gridResolution + time) % this.gridResolution;
+                const ty = Math.abs((y / this.height + 0.5) * this.gridResolution + time * 0.7) % this.gridResolution;
+                const tz = Math.abs((z / this.depth + 0.5) * this.gridResolution + time * 0.3) % this.gridResolution;
+                
+                const x0 = Math.floor(tx) % this.gridResolution;
+                const y0 = Math.floor(ty) % this.gridResolution;
+                const z0 = Math.floor(tz) % this.gridResolution;
+                
+                const x1 = (x0 + 1) % this.gridResolution;
+                const y1 = (y0 + 1) % this.gridResolution;
+                const z1 = (z0 + 1) % this.gridResolution;
+                
+                const fx = tx - Math.floor(tx);
+                const fy = ty - Math.floor(ty);
+                const fz = tz - Math.floor(tz);
+                
+                // Trilinear interpolation
+                const v000 = this.noiseGrid[x0][y0][z0];
+                const v100 = this.noiseGrid[x1][y0][z0];
+                const v010 = this.noiseGrid[x0][y1][z0];
+                const v110 = this.noiseGrid[x1][y1][z0];
+                const v001 = this.noiseGrid[x0][y0][z1];
+                const v101 = this.noiseGrid[x1][y0][z1];
+                const v011 = this.noiseGrid[x0][y1][z1];
+                const v111 = this.noiseGrid[x1][y1][z1];
+                
+                const v00 = v000 * (1 - fx) + v100 * fx;
+                const v01 = v001 * (1 - fx) + v101 * fx;
+                const v10 = v010 * (1 - fx) + v110 * fx;
+                const v11 = v011 * (1 - fx) + v111 * fx;
+                
+                const v0 = v00 * (1 - fy) + v10 * fy;
+                const v1 = v01 * (1 - fy) + v11 * fy;
+                
+                return v0 * (1 - fz) + v1 * fz;
+            }
+            
+            getCurlNoise(x, y, z, time) {
+                if (!this.enabled) return getVector(0, 0, 0);
+                
+                const epsilon = 10;
+                
+                const n1 = this.sampleNoise(x + epsilon, y, z, time);
+                const n2 = this.sampleNoise(x - epsilon, y, z, time);
+                const n3 = this.sampleNoise(x, y + epsilon, z, time);
+                const n4 = this.sampleNoise(x, y - epsilon, z, time);
+                const n5 = this.sampleNoise(x, y, z + epsilon, time);
+                const n6 = this.sampleNoise(x, y, z - epsilon, time);
+                
+                const curlX = (n3 - n4) / (2 * epsilon);
+                const curlY = (n5 - n6) / (2 * epsilon);
+                const curlZ = (n1 - n2) / (2 * epsilon);
+                
+                // Validate curl values before returning
+                if (!isFinite(curlX) || !isFinite(curlY) || !isFinite(curlZ)) {
+                    return getVector(0, 0, 0);
+                }
+                
+                return getVector(curlX * 0.1, curlY * 0.1, curlZ * 0.1); // Extra reduction
+            }
+            
+            createVortex(position, strength = 1.0, radius = 80) {
+                if (!this.enabled) return;
+                
+                if (this.vortices.length >= this.maxVortices) {
+                    // Remove oldest vortex
+                    this.vortices.shift();
+                }
+                
+                this.vortices.push({
+                    position: position.clone(),
+                    strength: strength * 0.1 * (Math.random() > 0.5 ? 1 : -1), // REDUCED strength
+                    radius: radius * 0.5, // REDUCED radius
+                    age: 0,
+                    maxAge: 100 + Math.random() * 100, // REDUCED from 300-500
+                    decay: 0.99 // Faster decay
+                });
+            }
+            
+            applyTurbulence(boid, time) {
+                if (!this.enabled) return getVector(0, 0, 0);
+                
+                // Base curl noise
+                const curlForce = this.getCurlNoise(
+                    boid.position.x,
+                    boid.position.y,
+                    boid.position.z,
+                    time * this.timeScale
+                );
+                curlForce.multiplyScalar(0.1 * this.turbulenceIntensity); // REDUCED from 0.3
+                
+                // Vortex contributions
+                const vortexForce = getVector();
+                this.vortices.forEach(vortex => {
+                    const diff = getVector().subVectors(boid.position, vortex.position);
+                    const distance = diff.length();
+                    
+                    if (distance < vortex.radius && distance > 0.1) {
+                        const force = vortex.strength * Math.exp(-distance / vortex.radius * 2);
+                        const tangent = getVector(
+                            -diff.y,
+                            diff.x,
+                            diff.z * 0.01 // REDUCED from 0.1
+                        ).normalize();
+                        tangent.multiplyScalar(force);
+                        vortexForce.add(tangent);
+                        releaseVector(tangent);
+                    }
+                    releaseVector(diff);
+                });
+                vortexForce.multiplyScalar(0.01 * this.turbulenceIntensity); // REDUCED from 0.05
+                
+                const totalForce = getVector().addVectors(curlForce, vortexForce);
+                
+                // Clamp total turbulence force
+                totalForce.clampLength(0, 0.1); // REDUCED from 1.0
+                
+                releaseVectors(curlForce, vortexForce);
+                
+                return totalForce;
+            }
+            
+            update(dt) {
+                if (!this.enabled) {
+                    this.vortices = [];
+                    return;
+                }
+                
+                // Update vortices
+                this.vortices = this.vortices.filter(vortex => {
+                    vortex.age += dt;
+                    vortex.strength *= vortex.decay;
+                    
+                    // Reduced drift
+                    vortex.position.x += (Math.random() - 0.5) * 0.1; // REDUCED from 0.3
+                    vortex.position.y += (Math.random() - 0.5) * 0.1;
+                    
+                    return vortex.age < vortex.maxAge && Math.abs(vortex.strength) > 0.01;
+                });
+            }
+        }
+        
+        // Bifurcation Controller - MINIMAL TRANSITIONS
+        class BifurcationController {
+            constructor() {
+                this.criticalPoints = [0.15, 0.35, 0.65, 0.85];
+                this.currentRegime = 'stable';
+                this.transitionChaos = 0;
+                this.regimeHistory = [];
+                this.enabled = false; // DISABLED by default
+            }
+            
+            updateBehaviorRegime(tacticalBalance, boids) {
+                if (!this.enabled) {
+                    return {
+                        regime: 'stable',
+                        chaosMultiplier: 0.1
+                    };
+                }
+                
+                let newRegime = 'stable';
+                if (tacticalBalance < this.criticalPoints[0]) {
+                    newRegime = 'full_prey';
+                } else if (tacticalBalance < this.criticalPoints[1]) {
+                    newRegime = 'edge_of_chaos_prey';
+                } else if (tacticalBalance < this.criticalPoints[2]) {
+                    newRegime = 'chaotic_mixed';
+                } else if (tacticalBalance < this.criticalPoints[3]) {
+                    newRegime = 'edge_of_chaos_predator';
+                } else {
+                    newRegime = 'full_predator';
+                }
+                
+                // Detect regime transition
+                if (newRegime !== this.currentRegime) {
+                    this.transitionChaos = 0.1; // REDUCED from 1.0
+                    // Don't inject perturbations - too disruptive
+                    
+                    // Record transition
+                    this.regimeHistory.push({
+                        from: this.currentRegime,
+                        to: newRegime,
+                        timestamp: Date.now()
+                    });
+                }
+                
+                this.currentRegime = newRegime;
+                this.transitionChaos *= 0.95;
+                
+                return {
+                    regime: newRegime,
+                    chaosMultiplier: this.getRegimeChaos(newRegime) * 0.1 + this.transitionChaos // REDUCED
+                };
+            }
+            
+            getRegimeChaos(regime) {
+                const chaosLevels = {
+                    'full_prey': 0.05, // REDUCED from 0.1
+                    'edge_of_chaos_prey': 0.1, // REDUCED from 0.5
+                    'chaotic_mixed': 0.2, // REDUCED from 1.0
+                    'edge_of_chaos_predator': 0.1, // REDUCED from 0.5
+                    'full_predator': 0.05 // REDUCED from 0.2
+                };
+                return chaosLevels[regime] || 0.1;
+            }
+            
+            injectTransitionPerturbations(boids) {
+                // DISABLED - too disruptive
+                return;
+            }
+        }
+        
+        // Lévy Flight Behavior - MOSTLY DISABLED
+        class LevyFlightBehavior {
+            constructor() {
+                this.alpha = 1.5;
+                this.explorationProbability = 0.001; // REDUCED from 0.02
+                this.scale = 20; // REDUCED from 100
+                this.enabled = false; // DISABLED by default
+            }
+            
+            gamma(z) {
+                if (z <= 0 || !isFinite(z)) return 1;
+                if (z > 10) return 1;
+                return Math.sqrt(2 * Math.PI / z) * Math.pow((z / Math.E), z);
+            }
+            
+            gaussianRandom() {
+                let u = 0, v = 0;
+                while (u === 0) u = Math.random();
+                while (v === 0) v = Math.random();
+                return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+            }
+            
+            generateLevyStep() {
+                const u = this.gaussianRandom();
+                const v = Math.abs(this.gaussianRandom());
+                
+                const divisor = Math.max(v, 0.1);
+                const step = u / Math.pow(divisor, 1 / this.alpha);
+                
+                if (!isFinite(step)) {
+                    return this.scale * 0.5;
+                }
+                
+                const clampedStep = Math.max(5, Math.min(Math.abs(step) * this.scale, this.scale)); // REDUCED
+                return clampedStep;
+            }
+            
+            applyLevyExploration(boid, dt) {
+                if (!this.enabled) return { override: false };
+                
+                if (Math.random() < this.explorationProbability * dt) {
+                    const stepSize = this.generateLevyStep();
+                    const angle = Math.random() * 2 * Math.PI;
+                    const phi = Math.acos(2 * Math.random() - 1);
+                    
+                    boid.levyTarget = getVector(
+                        boid.position.x + Math.sin(phi) * Math.cos(angle) * stepSize,
+                        boid.position.y + Math.sin(phi) * Math.sin(angle) * stepSize,
+                        boid.position.z + Math.cos(phi) * stepSize * 0.1 // REDUCED from 0.3
+                    );
+                    
+                    boid.levyStartTime = Date.now();
+                    boid.levyDuration = Math.max(500, stepSize / boid.maxSpeed * 500); // REDUCED
+                    boid.isExploring = true;
+                }
+                
+                if (boid.isExploring && boid.levyTarget) {
+                    const elapsed = Date.now() - boid.levyStartTime;
+                    const progress = Math.min(elapsed / boid.levyDuration, 1);
+                    
+                    if (progress < 1) {
+                        const dir = getVector().subVectors(boid.levyTarget, boid.position);
+                        const distance = dir.length();
+                        
+                        if (distance > 0.1) {
+                            dir.normalize();
+                            dir.multiplyScalar(Math.min(boid.maxSpeed * 1.2, 2)); // REDUCED from 1.5, 3
+                            return { force: dir, override: true };
+                        }
+                    } else {
+                        boid.isExploring = false;
+                        releaseVector(boid.levyTarget);
+                        boid.levyTarget = null;
+                    }
+                }
+                
+                return { override: false };
+            }
+        }
+        
+        // ===== END CHAOS SYSTEMS (TONED DOWN) =====
+        
+        // Performance monitoring and adaptive features
+        let lastTime = performance.now();
+        let frameCount = 0;
+        let updateTimeMs = 0;
+        let fps = 60;
+        let performanceMode = 'Normal';
+        let lastPerformanceCheck = 0;
+        
+        // Statistics tracking
+        let biteCount = 0;
+        let nearMissCount = 0;
+        
+        // Bite detection
+        const BITE_DISTANCE = 10;
+        const BITE_DISTANCE_SQ = BITE_DISTANCE * BITE_DISTANCE;
+        
+        // Flock detection parameters
+        const FLOCK_DISTANCE_THRESHOLD = 80;
+        const MIN_FLOCK_SIZE = 7;
+        
+        // Adaptive performance counters
+        let flockDetectionCounter = 0;
+        let flockUpdateFrequency = 10;
+        let statsUpdateCounter = 0;
+        let frameCounter = 0;
+        
+        // Trend graph for tactical balance
+        const TREND_HISTORY_SIZE = 200;
+        let trendHistory = [];
+        let trendCounter = 0;
+        
+        // Enhanced tactical tracking
+        let tacticalScore = 0;
+        let lastSuccessfulActions = 0;
+        let formationEfficiency = 0;
+        let healthMomentum = 0;
+        let lastHealthValues = { fish: 500, boid: 500 };
+        
+        // Distance tracking for "Who's Winning?" graph
+        const DISTANCE_HISTORY_SIZE = 60;
+        let distanceHistory = [];
+        let previousAvgDistance = null;
+        let distanceTrendCounter = 0;
+        let distanceTrendHistory = [];
+        let closestApproachEver = Infinity;
+        
+        // Lyapunov exponent tracking
+        let boidPreviousPositions = new Map();
+        let lyapunovHistory = [];
+        
+        // Scene setup
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+        const renderer = new THREE.WebGLRenderer({ 
+            antialias: true,
+            powerPreference: "high-performance"
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x0a0a0a);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+
+        // Camera controls
+        let mouseX = 0, mouseY = 0;
+        let targetX = 0, targetY = 0;
+        let isMouseDown = false;
+        let cameraDistance = 400;
+        
+        camera.position.set(0, 0, cameraDistance);
+        camera.lookAt(0, 0, 0);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+        scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(200, 200, 100);
+        directionalLight.castShadow = true;
+        scene.add(directionalLight);
+
+        // Stars
+        const starsGeometry = new THREE.BufferGeometry();
+        const starsVertices = [];
+        for(let i = 0; i < 1000; i++) {
+            starsVertices.push((Math.random() - 0.5) * 2000);
+            starsVertices.push((Math.random() - 0.5) * 2000);
+            starsVertices.push((Math.random() - 0.5) * 2000);
+        }
+        starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starsVertices, 3));
+        const starsMaterial = new THREE.PointsMaterial({color: 0x888888, size: 1});
+        const stars = new THREE.Points(starsGeometry, starsMaterial);
+        scene.add(stars);
+
+        function getScreenDimensions() {
+            const aspectRatio = window.innerWidth / window.innerHeight;
+            const viewHeight = 2 * Math.tan((camera.fov * Math.PI) / 360) * cameraDistance;
+            const viewWidth = viewHeight * aspectRatio;
+            return {
+                width: viewWidth * 0.8,
+                height: viewHeight * 0.8,
+                depth: Math.min(viewWidth, viewHeight) * 0.5
+            };
+        }
+
+        // Behavior parameters with chaos additions
+        const behaviorParams = {
+            prey: {
+                calmSpeed: 1.5,  // Slightly increased
+                escapeSpeed: 3.5, // Reduced from 4.5
+                detectionRange: 80,
+                escapeForce: 2.0  // Reduced from 2.5
+            },
+            predator: {
+                wanderSpeed: 1.5,  // Slightly increased
+                huntSpeed: 3.5,    // Reduced from 4.5
+                detectionRange: 120,
+                huntForce: 0.6     // Reduced from 0.8
+            },
+            flocking: {
+                separationForce: 1.5,
+                alignmentForce: 1.0,
+                cohesionForce: 1.0
+            },
+            chaos: {
+                globalLevel: 0.1, // REDUCED from 0.3
+                butterflyStrength: 0.1, // REDUCED from 1.0
+                turbulenceIntensity: 0.1, // REDUCED from 0.3
+                levyProbability: 0.001, // REDUCED from 0.02
+                enableVortices: false, // DISABLED by default
+                showIndicators: false // DISABLED by default
+            },
+            particleCount: 200,
+            speedSmoothing: 0.15,
+            boundaryStrength: 5.0,
+            predatorBalance: 0.0,
+            enableFlockCenters: true,
+            showFlockGlobalLines: true,
+            showChaosIndicators: true
+        };
+        
+        // Initialize chaos systems (with toned-down defaults)
+        const chaosSystem = new ChaoticBoidSystem();
+        chaosSystem.globalChaosLevel = 0.1; // Override with lower default
+        
+        const butterflyEffect = new ButterflyEffectSystem();
+        butterflyEffect.butterflyStrength = 0.1; // Override with lower default
+        butterflyEffect.enabled = false; // Start disabled
+        
+        const biologicalChaos = new BiologicalChaosSystem();
+        
+        const turbulenceField = new TurbulenceField(
+            getScreenDimensions().width,
+            getScreenDimensions().height,
+            getScreenDimensions().depth
+        );
+        turbulenceField.turbulenceIntensity = 0.1; // Override with lower default
+        turbulenceField.enabled = false; // Start disabled
+        
+        const bifurcationController = new BifurcationController();
+        bifurcationController.enabled = false; // Start disabled
+        
+        const levyFlight = new LevyFlightBehavior();
+        levyFlight.explorationProbability = 0.001; // Override with lower default
+        levyFlight.enabled = false; // Start disabled
+        
+        // Health systems for both sides
+        const FISH_MAX_HEALTH = 500;
+        const BOID_COLLECTIVE_MAX_HEALTH = 500;
+        let fishHealth = FISH_MAX_HEALTH;
+        let boidCollectiveHealth = BOID_COLLECTIVE_MAX_HEALTH;
+
+        let screenDims = getScreenDimensions();
+
+        // OPTIMIZED SPATIAL HASHING
+        class SpatialHashGrid {
+            constructor(cellSize) {
+                this.cellSize = cellSize;
+                this.grid = new Map();
+            }
+
+            clear() {
+                this.grid.clear();
+            }
+
+            getKey(x, y, z) {
+                const xi = Math.floor(x / this.cellSize);
+                const yi = Math.floor(y / this.cellSize);
+                const zi = Math.floor(z / this.cellSize);
+                return `${xi},${yi},${zi}`;
+            }
+
+            insert(boid) {
+                const key = this.getKey(boid.position.x, boid.position.y, boid.position.z);
+                if (!this.grid.has(key)) {
+                    this.grid.set(key, []);
+                }
+                this.grid.get(key).push(boid);
+            }
+
+            getNeighbors(position, radius) {
+                const neighbors = [];
+                const cellRadius = Math.ceil(radius / this.cellSize);
+                
+                const centerX = Math.floor(position.x / this.cellSize);
+                const centerY = Math.floor(position.y / this.cellSize);
+                const centerZ = Math.floor(position.z / this.cellSize);
+
+                for (let dx = -cellRadius; dx <= cellRadius; dx++) {
+                    for (let dy = -cellRadius; dy <= cellRadius; dy++) {
+                        for (let dz = -cellRadius; dz <= cellRadius; dz++) {
+                            const key = `${centerX + dx},${centerY + dy},${centerZ + dz}`;
+                            const cellBoids = this.grid.get(key);
+                            if (cellBoids) {
+                                neighbors.push(...cellBoids);
+                            }
+                        }
+                    }
+                }
+                return neighbors;
+            }
+        }
+
+        const spatialGrid = new SpatialHashGrid(80);
+
+        // Object Pool for Vector3 with proper cleanup
+        const vectorPool = [];
+        const MAX_POOL_SIZE = 2000;
+        
+        function getVector(x = 0, y = 0, z = 0) {
+            const v = vectorPool.pop();
+            if (v) {
+                // Always reset vector values when reusing from pool
+                return v.set(
+                    isFinite(x) ? x : 0,
+                    isFinite(y) ? y : 0,
+                    isFinite(z) ? z : 0
+                );
+            }
+            // Create new vector if pool is empty
+            return new THREE.Vector3(
+                isFinite(x) ? x : 0,
+                isFinite(y) ? y : 0,
+                isFinite(z) ? z : 0
+            );
+        }
+        
+        function releaseVector(v) {
+            if (v && vectorPool.length < MAX_POOL_SIZE) {
+                // Reset vector before returning to pool
+                if (isFinite(v.x) && isFinite(v.y) && isFinite(v.z)) {
+                    v.set(0, 0, 0);
+                    vectorPool.push(v);
+                }
+            }
+        }
+        
+        function releaseVectors(...vectors) {
+            for (const v of vectors) {
+                releaseVector(v);
+            }
+        }
+
+        // Single entity with separate position tracking
+        let singleEntityPosition = new THREE.Vector3(0, 0, 0);
+        let singleEntityVelocity = new THREE.Vector3(
+            (Math.random() - 0.5) * 2,
+            (Math.random() - 0.5) * 2,
+            (Math.random() - 0.5) * 2
+        );
+
+        // Flock tracking with enhanced smoothing
+        let flocks = [];
+        let globalCenter = new THREE.Vector3();
+        let visualGlobalCenter = new THREE.Vector3();
+        let targetGlobalCenter = new THREE.Vector3();
+        let globalCenterVelocity = new THREE.Vector3();
+        let globalCenterAcceleration = new THREE.Vector3();
+        let globalCenterHistory = [];
+        const GLOBAL_CENTER_HISTORY_SIZE = 10;
+        const CENTER_LERP_FACTOR = 0.2;
+        const CENTER_VELOCITY_DAMPING = 0.85;
+        const GLOBAL_CENTER_LERP = 0.08;
+        const GLOBAL_CENTER_DAMPING = 0.92;
+        const GLOBAL_CENTER_INERTIA = 0.95;
+
+        // Visual elements
+        const flockGlobalLinesGroup = new THREE.Group();
+        scene.add(flockGlobalLinesGroup);
+
+        const globalCenterGeometry = new THREE.SphereGeometry(4, 16, 16);
+        const globalCenterMaterial = new THREE.MeshLambertMaterial({ 
+            color: 0x00ff00, 
+            emissive: 0x00aa00,
+            transparent: true, 
+            opacity: 0.9
+        });
+        const globalCenterMesh = new THREE.Mesh(globalCenterGeometry, globalCenterMaterial);
+        scene.add(globalCenterMesh);
+
+        // Predator tracking line
+        const predatorTrackingGeometry = new THREE.BufferGeometry();
+        const predatorTrackingPositions = new Float32Array(6);
+        predatorTrackingGeometry.setAttribute('position', new THREE.BufferAttribute(predatorTrackingPositions, 3));
+        const predatorTrackingMaterial = new THREE.LineBasicMaterial({ 
+            color: 0xff4444, 
+            opacity: 0.7,
+            transparent: true,
+            linewidth: 2
+        });
+        const predatorTrackingLine = new THREE.Line(predatorTrackingGeometry, predatorTrackingMaterial);
+        scene.add(predatorTrackingLine);
+
+        // Trend graph setup
+        const trendCanvas = document.getElementById('trendCanvas');
+        const trendCtx = trendCanvas.getContext('2d');
+        let graphUpdateCounter = 0;
+        
+        // Distance graph setup
+        const distanceCanvas = document.getElementById('distanceCanvas');
+        const distanceCtx = distanceCanvas.getContext('2d');
+        let distanceGraphUpdateCounter = 0;
+        
+        // Phase space canvas
+        const phaseSpaceCanvas = document.getElementById('phaseSpaceCanvas');
+        const phaseSpaceCtx = phaseSpaceCanvas.getContext('2d');
+
+        // Single Entity class
+        class SingleEntity {
+            constructor() {
+                this.position = singleEntityPosition;
+                this.velocity = singleEntityVelocity;
+                this.acceleration = new THREE.Vector3();
+                this.wanderTarget = new THREE.Vector3();
+                this.wanderTimer = 0;
+                
+                this.state = 'wandering';
+                this.currentSpeed = 1.0;
+                this.targetSpeed = 1.0;
+                this.stateCooldown = 0;
+                
+                this.currentTarget = null;
+                this.targetFlock = null;
+                
+                this.maxHealth = 500;
+                this.health = this.maxHealth;
+                this.lastBiteTime = 0;
+                this.biteImmunityTime = 100;
+            }
+
+            isPredator() {
+                return behaviorParams.predatorBalance < 0.5;
+            }
+            
+            getPredatorPower() {
+                if (this.isPredator()) {
+                    return 1 - behaviorParams.predatorBalance;
+                }
+                return behaviorParams.predatorBalance;
+            }
+            
+            takeDamage() {
+                if (this.isPredator()) return false;
+                
+                const currentTime = Date.now();
+                if (currentTime - this.lastBiteTime < this.biteImmunityTime) {
+                    return false;
+                }
+                
+                const damage = Math.max(1, Math.floor(5 * behaviorParams.predatorBalance));
+                fishHealth = Math.max(0, fishHealth - damage);
+                this.lastBiteTime = currentTime;
+                updateDualHealthBar();
+                
+                predatorMaterial.emissive.setHex(0xff0000);
+                setTimeout(() => {
+                    updateBigFishVisuals();
+                }, 100);
+                
+                return true;
+            }
+            
+            getSpeedMultiplier() {
+                if (this.isPredator()) return 1.0;
+                const healthPercent = fishHealth / FISH_MAX_HEALTH;
+                return 0.2 + (0.8 * healthPercent);
+            }
+
+            detectTarget(boids) {
+                const params = this.isPredator() ? behaviorParams.predator : behaviorParams.prey;
+                this.currentTarget = null;
+                this.targetFlock = null;
+                
+                if (this.isPredator()) {
+                    let closestBoid = null;
+                    let closestDist = Infinity;
+                    
+                    for (const boid of boids) {
+                        if (!boid.isAlive) continue;
+                        const dist = this.position.distanceTo(boid.position);
+                        if (dist < params.detectionRange && dist < closestDist) {
+                            closestDist = dist;
+                            closestBoid = boid;
+                        }
+                    }
+                    
+                    if (closestBoid) {
+                        if (this.stateCooldown <= 0) {
+                            this.state = 'hunting';
+                            this.targetSpeed = params.huntSpeed;
+                        }
+                        
+                        this.currentTarget = closestBoid.position;
+                        for (const flock of flocks) {
+                            if (flock.boids.includes(closestBoid)) {
+                                this.targetFlock = flock;
+                                break;
+                            }
+                        }
+                        
+                        return closestBoid.position;
+                    } else {
+                        if (this.state === 'hunting' && this.stateCooldown <= 0) {
+                            this.state = 'wandering';
+                            this.targetSpeed = params.wanderSpeed;
+                            this.stateCooldown = 30;
+                        }
+                    }
+                } else {
+                    let threatsDetected = 0;
+                    const avgThreatPos = getVector();
+                    
+                    for (const boid of boids) {
+                        if (!boid.isAlive) continue;
+                        const dist = this.position.distanceTo(boid.position);
+                        if (dist < params.detectionRange) {
+                            threatsDetected++;
+                            avgThreatPos.add(boid.position);
+                        }
+                    }
+                    
+                    if (threatsDetected > 0 && this.stateCooldown <= 0) {
+                        this.state = 'fleeing';
+                        this.targetSpeed = params.escapeSpeed * this.getSpeedMultiplier();
+                        avgThreatPos.divideScalar(threatsDetected);
+                        this.currentTarget = avgThreatPos;
+                        return avgThreatPos;
+                    } else if (threatsDetected === 0 && this.state === 'fleeing' && this.stateCooldown <= 0) {
+                        this.state = 'wandering';
+                        this.targetSpeed = params.calmSpeed * this.getSpeedMultiplier();
+                        this.stateCooldown = 30;
+                    }
+                    releaseVector(avgThreatPos);
+                }
+                
+                return null;
+            }
+
+            wander() {
+                this.wanderTimer++;
+                if (this.wanderTimer > 120) {
+                    this.wanderTarget.set(
+                        (Math.random() - 0.5) * screenDims.width * 0.6,
+                        (Math.random() - 0.5) * screenDims.height * 0.6,
+                        (Math.random() - 0.5) * screenDims.depth * 0.6
+                    );
+                    this.wanderTimer = 0;
+                }
+
+                const desired = getVector().subVectors(this.wanderTarget, this.position);
+                if (desired.length() > 0) {
+                    desired.normalize();
+                    desired.multiplyScalar(this.currentSpeed);
+                    
+                    const steer = getVector().subVectors(desired, this.velocity);
+                    steer.clampLength(0, 0.3);
+                    
+                    releaseVector(desired);
+                    return steer;
+                }
+                releaseVector(desired);
+                return getVector();
+            }
+
+            hunt(targetPos) {
+                const params = behaviorParams.predator;
+                const desired = getVector().subVectors(targetPos, this.position);
+                if (desired.length() > 0) {
+                    desired.normalize();
+                    desired.multiplyScalar(this.currentSpeed);
+                    
+                    const steer = getVector().subVectors(desired, this.velocity);
+                    steer.clampLength(0, params.huntForce * this.getPredatorPower());
+                    
+                    releaseVector(desired);
+                    return steer;
+                }
+                releaseVector(desired);
+                return getVector();
+            }
+
+            flee(threatPos) {
+                const params = behaviorParams.prey;
+                const fleeVector = getVector().subVectors(this.position, threatPos);
+                if (fleeVector.length() > 0) {
+                    fleeVector.normalize();
+                    fleeVector.multiplyScalar(this.currentSpeed);
+                    
+                    const steer = getVector().subVectors(fleeVector, this.velocity);
+                    steer.clampLength(0, params.escapeForce);
+                    
+                    releaseVector(fleeVector);
+                    return steer;
+                }
+                releaseVector(fleeVector);
+                return getVector();
+            }
+
+            avoidBoundaries() {
+                const avoidanceDistance = 80;
+                const steer = getVector();
+                
+                const halfWidth = screenDims.width / 2;
+                const halfHeight = screenDims.height / 2;
+                const halfDepth = screenDims.depth / 2;
+                
+                if (this.position.x > halfWidth - avoidanceDistance) steer.x = -behaviorParams.boundaryStrength;
+                else if (this.position.x < -halfWidth + avoidanceDistance) steer.x = behaviorParams.boundaryStrength;
+                if (this.position.y > halfHeight - avoidanceDistance) steer.y = -behaviorParams.boundaryStrength;
+                else if (this.position.y < -halfHeight + avoidanceDistance) steer.y = behaviorParams.boundaryStrength;
+                if (this.position.z > halfDepth - avoidanceDistance) steer.z = -behaviorParams.boundaryStrength;
+                else if (this.position.z < -halfDepth + avoidanceDistance) steer.z = behaviorParams.boundaryStrength;
+                
+                return steer;
+            }
+            
+            update(boids) {
+                if (this.stateCooldown > 0) this.stateCooldown--;
+                
+                this.currentSpeed = THREE.MathUtils.lerp(this.currentSpeed, this.targetSpeed, behaviorParams.speedSmoothing);
+                
+                const target = this.detectTarget(boids);
+                
+                const desiredAcceleration = getVector();
+                
+                if (this.state === 'hunting' && target) {
+                    const huntForce = this.hunt(target);
+                    desiredAcceleration.add(huntForce);
+                    releaseVector(huntForce);
+                } else if (this.state === 'fleeing' && target) {
+                    const fleeForce = this.flee(target);
+                    desiredAcceleration.add(fleeForce);
+                    releaseVector(fleeForce);
+                    releaseVector(target);
+                } else {
+                    const wanderForce = this.wander();
+                    desiredAcceleration.add(wanderForce);
+                    releaseVector(wanderForce);
+                }
+                
+                const boundaryForce = this.avoidBoundaries();
+                desiredAcceleration.add(boundaryForce);
+                releaseVector(boundaryForce);
+                
+                // Simplified physics
+                const inertiaFactor = this.isPredator() ? 0.15 : 0.25;
+                this.acceleration.lerp(desiredAcceleration, inertiaFactor);
+                releaseVector(desiredAcceleration);
+                
+                this.velocity.add(this.acceleration);
+                
+                // Apply drag
+                this.velocity.multiplyScalar(0.95);
+                
+                // Ensure minimum speed
+                const speed = this.velocity.length();
+                if (speed < 0.5) {
+                    if (speed > 0.01) {
+                        this.velocity.normalize();
+                        this.velocity.multiplyScalar(0.5);
+                    } else {
+                        this.velocity.set(
+                            (Math.random() - 0.5),
+                            (Math.random() - 0.5),
+                            (Math.random() - 0.5)
+                        ).normalize().multiplyScalar(0.5);
+                    }
+                } else if (speed > this.currentSpeed * 1.2) {
+                    this.velocity.normalize();
+                    this.velocity.multiplyScalar(this.currentSpeed * 1.2);
+                }
+                
+                this.position.add(this.velocity);
+                
+                // Soft boundary constraints
+                const margin = 0.95;
+                const halfWidth = screenDims.width / 2 * margin;
+                const halfHeight = screenDims.height / 2 * margin;
+                const halfDepth = screenDims.depth / 2 * margin;
+                
+                if (this.position.x > halfWidth) {
+                    this.position.x = halfWidth;
+                    this.velocity.x = -Math.abs(this.velocity.x) * 0.7;
+                } else if (this.position.x < -halfWidth) {
+                    this.position.x = -halfWidth;
+                    this.velocity.x = Math.abs(this.velocity.x) * 0.7;
+                }
+                
+                if (this.position.y > halfHeight) {
+                    this.position.y = halfHeight;
+                    this.velocity.y = -Math.abs(this.velocity.y) * 0.7;
+                } else if (this.position.y < -halfHeight) {
+                    this.position.y = -halfHeight;
+                    this.velocity.y = Math.abs(this.velocity.y) * 0.7;
+                }
+                
+                if (this.position.z > halfDepth) {
+                    this.position.z = halfDepth;
+                    this.velocity.z = -Math.abs(this.velocity.z) * 0.7;
+                } else if (this.position.z < -halfDepth) {
+                    this.position.z = -halfDepth;
+                    this.velocity.z = Math.abs(this.velocity.z) * 0.7;
+                }
+            }
+        }
+
+        const singleEntity = new SingleEntity();
+
+        // Create predator mesh
+        const predatorGeometry = new THREE.ConeGeometry(8, 20, 6);
+        predatorGeometry.rotateX(-Math.PI / 2);
+        predatorGeometry.rotateY(Math.PI);
+        const predatorMaterial = new THREE.MeshLambertMaterial({ 
+            color: 0x1e90ff,
+            emissive: 0x000066
+        });
+        const predatorMesh = new THREE.Mesh(predatorGeometry, predatorMaterial);
+        predatorMesh.castShadow = true;
+        scene.add(predatorMesh);
+
+        // Flock class
+        class Flock {
+            constructor(id) {
+                this.id = id;
+                this.boids = [];
+                this.center = getVector();
+                this.visualCenter = getVector();
+                this.targetCenter = getVector();
+                this.centerVelocity = getVector();
+                this.lastUpdateFrame = 0;
+                
+                this.centerStabilityThreshold = 8;
+                this.framesSinceLastRecalc = 0;
+                this.minFramesBetweenRecalc = 5;
+                this.maxFramesBetweenRecalc = 15;
+                
+                const geometry = new THREE.SphereGeometry(2.5, 12, 12);
+                const material = new THREE.MeshLambertMaterial({ 
+                    color: 0xff9933, 
+                    emissive: 0x663300, 
+                    transparent: true, 
+                    opacity: 0.8 
+                });
+                this.mesh = new THREE.Mesh(geometry, material);
+                scene.add(this.mesh);
+            }
+
+            easeOutCubic(t) {
+                return 1 - Math.pow(1 - t, 3);
+            }
+
+            calculateActualCenter() {
+                if (this.boids.length === 0) return null;
+                
+                const aliveBoids = this.boids.filter(b => b.isAlive);
+                if (aliveBoids.length === 0) return null;
+                
+                const actualCenter = getVector();
+                aliveBoids.forEach(boid => actualCenter.add(boid.position));
+                actualCenter.divideScalar(aliveBoids.length);
+                
+                // Better NaN validation
+                if (!isFinite(actualCenter.x) || !isFinite(actualCenter.y) || !isFinite(actualCenter.z)) {
+                    console.warn('NaN detected in actual center calculation, using previous');
+                    releaseVector(actualCenter);
+                    return null;
+                }
+                
+                return actualCenter;
+            }
+
+            shouldRecalculateCenter() {
+                this.framesSinceLastRecalc++;
+                
+                const aliveBoids = this.boids.filter(b => b.isAlive);
+                if (aliveBoids.length < this.boids.length * 0.8 || 
+                    this.framesSinceLastRecalc > this.maxFramesBetweenRecalc) {
+                    return true;
+                }
+                
+                if (this.framesSinceLastRecalc < this.minFramesBetweenRecalc) {
+                    return false;
+                }
+                
+                const actualCenter = this.calculateActualCenter();
+                if (!actualCenter) return true;
+                
+                const drift = this.center.distanceTo(actualCenter);
+                releaseVector(actualCenter);
+                
+                return drift > this.centerStabilityThreshold;
+            }
+
+            update() {
+                if (this.boids.length === 0) {
+                    this.mesh.visible = false;
+                    return;
+                }
+                
+                const actualCenter = this.calculateActualCenter();
+                if (!actualCenter) {
+                    this.mesh.visible = false;
+                    return;
+                }
+                
+                if (this.shouldRecalculateCenter()) {
+                    const aliveBoids = this.boids.filter(b => b.isAlive);
+                    this.boids = aliveBoids;
+                    this.center.copy(actualCenter);
+                    this.framesSinceLastRecalc = 0;
+                }
+                
+                this.targetCenter.copy(actualCenter);
+                releaseVector(actualCenter);
+                
+                if (this.visualCenter.lengthSq() === 0) {
+                    this.visualCenter.copy(this.center);
+                    this.centerVelocity.set(0, 0, 0);
+                }
+                
+                const targetDiff = getVector().subVectors(this.targetCenter, this.visualCenter);
+                const distance = targetDiff.length();
+                
+                if (distance > 0.1) {
+                    const acceleration = getVector().copy(targetDiff).multiplyScalar(CENTER_LERP_FACTOR);
+                    this.centerVelocity.add(acceleration);
+                    this.centerVelocity.multiplyScalar(CENTER_VELOCITY_DAMPING);
+                    
+                    const normalizedDistance = Math.min(distance / 20, 1);
+                    const easedFactor = this.easeOutCubic(normalizedDistance);
+                    
+                    const movement = getVector().copy(this.centerVelocity).multiplyScalar(easedFactor);
+                    this.visualCenter.add(movement);
+                    
+                    releaseVectors(acceleration, movement);
+                }
+                releaseVector(targetDiff);
+                
+                this.mesh.position.copy(this.visualCenter);
+                this.mesh.visible = true;
+                this.mesh.scale.setScalar(1 + 0.2 * Math.sin(Date.now() * 0.004 + this.id));
+            }
+
+            destroy() {
+                scene.remove(this.mesh);
+                releaseVectors(this.center, this.visualCenter, this.targetCenter, this.centerVelocity);
+            }
+        }
+
+        // Enhanced Boid class with chaos features
+        class Boid {
+            constructor() {
+                this.id = Math.random();
+                this.position = new THREE.Vector3(
+                    (Math.random() - 0.5) * screenDims.width * 0.8,
+                    (Math.random() - 0.5) * screenDims.height * 0.8,
+                    (Math.random() - 0.5) * screenDims.depth * 0.8
+                );
+                this.velocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * 1,
+                    (Math.random() - 0.5) * 1,
+                    (Math.random() - 0.5) * 0.5
+                );
+                // Ensure initial velocity meets minimum speed
+                if (this.velocity.length() < 0.5) {
+                    this.velocity.normalize();
+                    this.velocity.multiplyScalar(0.5);
+                }
+                this.acceleration = new THREE.Vector3();
+                
+                this.isThreatened = false;
+                this.currentSpeed = 1.5;
+                this.targetSpeed = 1.5;
+                this.isAlive = true;
+                
+                this.tacticalRole = 'neutral';
+                this.encircleTarget = null;
+                
+                // Initialize chaos properties
+                biologicalChaos.initializeBoid(this);
+                
+                // Lévy flight properties
+                this.isExploring = false;
+                this.levyTarget = null;
+                this.levyStartTime = 0;
+                this.levyDuration = 0;
+                
+                const geometry = new THREE.ConeGeometry(2.5, 8, 4);
+                geometry.rotateX(-Math.PI / 2);
+                geometry.rotateY(Math.PI);
+                
+                const hue = Math.random() * 0.2 + 0.5;
+                const material = new THREE.MeshLambertMaterial({ 
+                    color: new THREE.Color().setHSL(hue, 0.9, 0.7)
+                });
+                this.mesh = new THREE.Mesh(geometry, material);
+                this.mesh.castShadow = true;
+                scene.add(this.mesh);
+            }
+
+            isPredator() {
+                return behaviorParams.predatorBalance >= 0.5;
+            }
+            
+            getPredatorPower() {
+                if (this.isPredator()) {
+                    return behaviorParams.predatorBalance;
+                }
+                return 1 - behaviorParams.predatorBalance;
+            }
+
+            detectThreat() {
+                const dist = this.position.distanceTo(singleEntityPosition);
+                
+                if (this.isPredator()) {
+                    const params = behaviorParams.predator;
+                    this.isThreatened = dist < params.detectionRange;
+                    this.targetSpeed = this.isThreatened ? params.huntSpeed : params.wanderSpeed;
+                } else {
+                    const params = behaviorParams.prey;
+                    this.isThreatened = dist < params.detectionRange;
+                    this.targetSpeed = this.isThreatened ? params.escapeSpeed : params.calmSpeed;
+                    
+                    if (this.isThreatened && dist < params.detectionRange * 0.6) {
+                        const nearbyBoids = spatialGrid.getNeighbors(this.position, params.detectionRange);
+                        const threatenedNearby = nearbyBoids.filter(b => 
+                            b !== this && b.isAlive && b.isThreatened
+                        ).length;
+                        
+                        if (threatenedNearby >= 5) {
+                            this.tacticalRole = 'encircling';
+                            this.encircleTarget = singleEntityPosition;
+                        } else {
+                            this.tacticalRole = 'fleeing';
+                        }
+                    } else {
+                        this.tacticalRole = 'neutral';
+                    }
+                }
+            }
+
+            getNeighbors(maxDistance) {
+                const neighbors = spatialGrid.getNeighbors(this.position, maxDistance);
+                const filtered = [];
+                
+                for (const other of neighbors) {
+                    if (other !== this && other.isAlive) {
+                        const d = this.position.distanceTo(other.position);
+                        if (d <= maxDistance) {
+                            filtered.push({ boid: other, distance: d });
+                        }
+                    }
+                }
+                return filtered;
+            }
+
+            separate() {
+                const desiredSeparation = 25;
+                const steer = getVector();
+                let count = 0;
+
+                const neighbors = this.getNeighbors(desiredSeparation);
+                
+                for (const { boid: other, distance: d } of neighbors) {
+                    if (d > 0 && d < desiredSeparation) {
+                        // Calculate repulsion force
+                        const diff = getVector().subVectors(this.position, other.position);
+                        diff.normalize();
+                        diff.divideScalar(d); // Weight by distance
+                        steer.add(diff);
+                        releaseVector(diff);
+                        count++;
+                    }
+                }
+
+                if (count > 0) {
+                    steer.divideScalar(count);
+                    if (steer.length() > 0) {
+                        steer.normalize();
+                        steer.multiplyScalar(this.currentSpeed);
+                        const result = getVector().subVectors(steer, this.velocity);
+                        result.clampLength(0, behaviorParams.flocking.separationForce);
+                        releaseVector(steer);
+                        return result;
+                    }
+                }
+                
+                releaseVector(steer);
+                return getVector();
+            }
+
+            align() {
+                const neighborDist = 50;
+                const sum = getVector();
+                let count = 0;
+
+                const neighbors = this.getNeighbors(neighborDist);
+                
+                for (const { boid: other } of neighbors) {
+                    sum.add(other.velocity);
+                    count++;
+                }
+
+                if (count > 0) {
+                    sum.divideScalar(count);
+                    if (sum.length() > 0) {
+                        sum.normalize();
+                        sum.multiplyScalar(this.currentSpeed);
+                        const steer = getVector().subVectors(sum, this.velocity);
+                        steer.clampLength(0, behaviorParams.flocking.alignmentForce);
+                        releaseVector(sum);
+                        return steer;
+                    }
+                }
+                
+                releaseVector(sum);
+                return getVector();
+            }
+
+            cohesion() {
+                const neighborDist = 60;
+                const sum = getVector();
+                let count = 0;
+
+                const neighbors = this.getNeighbors(neighborDist);
+                
+                for (const { boid: other } of neighbors) {
+                    sum.add(other.position);
+                    count++;
+                }
+
+                if (count > 0) {
+                    sum.divideScalar(count);
+                    const desired = getVector().subVectors(sum, this.position);
+                    if (desired.length() > 0) {
+                        desired.normalize();
+                        desired.multiplyScalar(this.currentSpeed);
+                        const steer = getVector().subVectors(desired, this.velocity);
+                        steer.clampLength(0, behaviorParams.flocking.cohesionForce);
+                        releaseVectors(sum, desired);
+                        return steer;
+                    }
+                    releaseVector(desired);
+                }
+                
+                releaseVector(sum);
+                return getVector();
+            }
+            
+            targetOrFlee() {
+                if (!this.isThreatened) return getVector();
+                
+                if (this.isPredator()) {
+                    const params = behaviorParams.predator;
+                    const chaseForce = getVector().subVectors(singleEntityPosition, this.position);
+                    if (chaseForce.length() > 0) {
+                        chaseForce.normalize();
+                        chaseForce.multiplyScalar(params.huntForce * this.getPredatorPower());
+                    }
+                    return chaseForce;
+                } else {
+                    const params = behaviorParams.prey;
+                    
+                    if (this.tacticalRole === 'encircling' && this.encircleTarget) {
+                        const toTarget = getVector().subVectors(this.encircleTarget, this.position);
+                        const dist = toTarget.length();
+                        const idealDist = 40;
+                        
+                        if (dist > idealDist + 10) {
+                            if (toTarget.length() > 0) {
+                                toTarget.normalize();
+                                toTarget.multiplyScalar(params.escapeForce * 0.5);
+                            }
+                        } else if (dist < idealDist - 10) {
+                            if (toTarget.length() > 0) {
+                                toTarget.normalize();
+                                toTarget.multiplyScalar(-params.escapeForce * 0.5);
+                            }
+                        } else {
+                            const perpendicular = getVector().crossVectors(toTarget, new THREE.Vector3(0, 1, 0));
+                            if (perpendicular.length() < 0.1) {
+                                perpendicular.crossVectors(toTarget, new THREE.Vector3(1, 0, 0));
+                            }
+                            if (perpendicular.length() > 0) {
+                                perpendicular.normalize();
+                                perpendicular.multiplyScalar(params.escapeForce * 0.3);
+                            }
+                            releaseVector(toTarget);
+                            return perpendicular;
+                        }
+                        return toTarget;
+                    } else {
+                        const escapeForce = getVector().subVectors(this.position, singleEntityPosition);
+                        if (escapeForce.length() > 0) {
+                            escapeForce.normalize();
+                            escapeForce.multiplyScalar(params.escapeForce);
+                        }
+                        return escapeForce;
+                    }
+                }
+            }
+
+            wander() {
+                // Simple smooth wandering using sine waves
+                const time = Date.now() * 0.001;
+                const offset = this.id * 10; // Use boid ID for variation
+                
+                return getVector(
+                    Math.sin(time * 0.5 + offset) * 0.1,
+                    Math.cos(time * 0.3 + offset * 1.5) * 0.1,
+                    Math.sin(time * 0.4 + offset * 0.7) * 0.1
+                );
+            }
+
+            avoidBoundaries() {
+                const steer = getVector();
+                const detectionRange = 60; // Increased from 50
+                const avoidanceForce = behaviorParams.boundaryStrength * 0.5; // Reduced force
+                
+                const halfWidth = screenDims.width / 2;
+                const halfHeight = screenDims.height / 2;
+                const halfDepth = screenDims.depth / 2;
+                
+                // Only apply force when getting close to boundaries
+                if (this.position.x > halfWidth - detectionRange) {
+                    steer.x = -avoidanceForce * ((this.position.x - (halfWidth - detectionRange)) / detectionRange);
+                } else if (this.position.x < -halfWidth + detectionRange) {
+                    steer.x = avoidanceForce * (((-halfWidth + detectionRange) - this.position.x) / detectionRange);
+                }
+                
+                if (this.position.y > halfHeight - detectionRange) {
+                    steer.y = -avoidanceForce * ((this.position.y - (halfHeight - detectionRange)) / detectionRange);
+                } else if (this.position.y < -halfHeight + detectionRange) {
+                    steer.y = avoidanceForce * (((-halfHeight + detectionRange) - this.position.y) / detectionRange);
+                }
+                
+                if (this.position.z > halfDepth - detectionRange) {
+                    steer.z = -avoidanceForce * ((this.position.z - (halfDepth - detectionRange)) / detectionRange);
+                } else if (this.position.z < -halfDepth + detectionRange) {
+                    steer.z = avoidanceForce * (((-halfDepth + detectionRange) - this.position.z) / detectionRange);
+                }
+                
+                return steer;
+            }
+
+            update(dt = 0.016) {
+                if (!this.isAlive) return;
+                
+                // Store previous position for Lyapunov calculation
+                boidPreviousPositions.set(this.id, this.position.clone());
+                
+                this.detectThreat();
+                
+                this.currentSpeed = THREE.MathUtils.lerp(this.currentSpeed, this.targetSpeed, behaviorParams.speedSmoothing);
+                
+                // Reset acceleration at start of each frame
+                this.acceleration.set(0, 0, 0);
+                
+                // Check for Lévy flight (DISABLED for now)
+                const levyResult = { override: false }; // levyFlight.applyLevyExploration(this, dt);
+                
+                if (levyResult.override) {
+                    // Lévy flight override
+                    this.acceleration.copy(levyResult.force);
+                    this.acceleration.clampLength(0, 2.0);
+                    releaseVector(levyResult.force);
+                } else {
+                    // Normal flocking behavior - calculate all forces
+                    const forces = [];
+                    
+                    // Core flocking forces
+                    forces.push(this.separate());
+                    forces.push(this.align());
+                    forces.push(this.cohesion());
+                    forces.push(this.targetOrFlee());
+                    forces.push(this.wander());
+                    forces.push(this.avoidBoundaries());
+                    
+                    // Add all forces to acceleration
+                    forces.forEach(force => {
+                        if (isFinite(force.x) && isFinite(force.y) && isFinite(force.z)) {
+                            this.acceleration.add(force);
+                        }
+                        releaseVector(force);
+                    });
+                    
+                    // REMOVED chaos modulation for now
+                    // REMOVED turbulence for now
+                    // REMOVED biological chaos modifiers for now
+                    
+                    // Simple clamp acceleration
+                    this.acceleration.clampLength(0, 2.0);
+                }
+                
+                // SIMPLIFIED PHYSICS:
+                // 1. Apply acceleration to velocity
+                this.velocity.add(this.acceleration);
+                
+                // 2. Apply drag to prevent runaway speeds
+                this.velocity.multiplyScalar(0.98);
+                
+                // 3. Ensure minimum speed to prevent getting stuck
+                const currentSpeed = this.velocity.length();
+                const minSpeed = 0.5;
+                const maxSpeed = this.currentSpeed * 1.2;
+                
+                if (currentSpeed < minSpeed) {
+                    // If too slow, maintain direction but boost speed
+                    if (currentSpeed > 0.01) {
+                        this.velocity.normalize();
+                        this.velocity.multiplyScalar(minSpeed);
+                    } else {
+                        // If completely stopped, give random direction
+                        this.velocity.set(
+                            (Math.random() - 0.5),
+                            (Math.random() - 0.5),
+                            (Math.random() - 0.5)
+                        ).normalize().multiplyScalar(minSpeed);
+                    }
+                } else if (currentSpeed > maxSpeed) {
+                    // If too fast, clamp to max speed
+                    this.velocity.normalize();
+                    this.velocity.multiplyScalar(maxSpeed);
+                }
+                
+                // 4. Apply velocity to position
+                this.position.add(this.velocity);
+                
+                // 5. IMPROVED boundary handling - soft boundaries with reflection
+                const margin = 0.9;
+                const halfWidth = screenDims.width / 2 * margin;
+                const halfHeight = screenDims.height / 2 * margin;
+                const halfDepth = screenDims.depth / 2 * margin;
+                
+                let hitBoundary = false;
+                
+                if (this.position.x > halfWidth) {
+                    this.position.x = halfWidth;
+                    this.velocity.x = -Math.abs(this.velocity.x) * 0.7;
+                    hitBoundary = true;
+                } else if (this.position.x < -halfWidth) {
+                    this.position.x = -halfWidth;
+                    this.velocity.x = Math.abs(this.velocity.x) * 0.7;
+                    hitBoundary = true;
+                }
+                
+                if (this.position.y > halfHeight) {
+                    this.position.y = halfHeight;
+                    this.velocity.y = -Math.abs(this.velocity.y) * 0.7;
+                    hitBoundary = true;
+                } else if (this.position.y < -halfHeight) {
+                    this.position.y = -halfHeight;
+                    this.velocity.y = Math.abs(this.velocity.y) * 0.7;
+                    hitBoundary = true;
+                }
+                
+                if (this.position.z > halfDepth) {
+                    this.position.z = halfDepth;
+                    this.velocity.z = -Math.abs(this.velocity.z) * 0.7;
+                    hitBoundary = true;
+                } else if (this.position.z < -halfDepth) {
+                    this.position.z = -halfDepth;
+                    this.velocity.z = Math.abs(this.velocity.z) * 0.7;
+                    hitBoundary = true;
+                }
+                
+                // If hit boundary, ensure we're moving away from it
+                if (hitBoundary) {
+                    const speed = this.velocity.length();
+                    if (speed < minSpeed) {
+                        this.velocity.normalize();
+                        this.velocity.multiplyScalar(minSpeed);
+                    }
+                }
+
+                // Update mesh position
+                this.mesh.position.copy(this.position);
+                
+                // FIXED: Only update rotation if moving significantly
+                const currentVelocity = this.velocity.length();
+                if (currentVelocity > 0.2) {
+                    // Use quaternion for smoother rotation
+                    const targetRotation = new THREE.Quaternion();
+                    const lookDirection = this.velocity.clone().normalize();
+                    
+                    // Create rotation matrix from velocity direction
+                    const rotationMatrix = new THREE.Matrix4();
+                    const up = new THREE.Vector3(0, 1, 0);
+                    
+                    // If velocity is mostly vertical, use different up vector
+                    if (Math.abs(lookDirection.y) > 0.95) {
+                        up.set(1, 0, 0);
+                    }
+                    
+                    // Calculate right vector
+                    const right = new THREE.Vector3().crossVectors(up, lookDirection).normalize();
+                    
+                    // Recalculate up to ensure orthogonality
+                    const realUp = new THREE.Vector3().crossVectors(lookDirection, right).normalize();
+                    
+                    // Build rotation matrix
+                    rotationMatrix.makeBasis(right, realUp, lookDirection);
+                    targetRotation.setFromRotationMatrix(rotationMatrix);
+                    
+                    // Smooth rotation using slerp
+                    this.mesh.quaternion.slerp(targetRotation, 0.1);
+                }
+                
+                // Simple color updates based on state
+                if (this.isThreatened) {
+                    if (this.isPredator()) {
+                        this.mesh.material.color.setHSL(0.05, 0.9, 0.7);
+                    } else {
+                        this.mesh.material.color.setHSL(0.0, 0.9, 0.7);
+                    }
+                } else {
+                    this.mesh.material.color.setHSL(0.55, 0.7, 0.6);
+                }
+            }
+
+            kill() {
+                this.isAlive = false;
+                scene.remove(this.mesh);
+            }
+
+            destroy() {
+                scene.remove(this.mesh);
+                if (this.levyTarget) releaseVector(this.levyTarget);
+            }
+        }
+
+        // Global variables
+        let boids = [];
+
+        // Performance monitoring
+        function updatePerformanceMode() {
+            const currentTime = performance.now();
+            if (currentTime - lastPerformanceCheck < 1000) return;
+            
+            lastPerformanceCheck = currentTime;
+            
+            if (fps < 25) {
+                performanceMode = 'Minimal';
+                behaviorParams.enableFlockCenters = false;
+                behaviorParams.showFlockGlobalLines = false;
+            } else if (fps < 35) {
+                performanceMode = 'Economy';
+                behaviorParams.enableFlockCenters = document.getElementById('enableFlockCenters').checked;
+                behaviorParams.showFlockGlobalLines = false;
+            } else {
+                performanceMode = 'Normal';
+                behaviorParams.enableFlockCenters = document.getElementById('enableFlockCenters').checked;
+                behaviorParams.showFlockGlobalLines = document.getElementById('showFlockGlobalLines').checked;
+            }
+            
+            const perfIndicator = document.getElementById('perfMode');
+            const perfModeText = document.getElementById('perfModeText');
+            const flockUpdateFreqText = document.getElementById('flockUpdateFreq');
+            
+            perfIndicator.textContent = `Performance: ${performanceMode}`;
+            perfModeText.textContent = performanceMode;
+            flockUpdateFreqText.textContent = `Every ${flockUpdateFrequency} frames`;
+            
+            if (performanceMode === 'Minimal') {
+                perfIndicator.className = 'perf-critical';
+            } else if (performanceMode === 'Economy') {
+                perfIndicator.className = 'perf-warning';
+            } else {
+                perfIndicator.className = '';
+            }
+        }
+
+        // Flock detection
+        function detectFlocks(boidsToScan) {
+            const visited = new Set();
+            const newFlocksData = [];
+            
+            function floodFill(startBoid) {
+                const flockBoids = [];
+                const toVisit = [startBoid];
+                
+                while (toVisit.length > 0) {
+                    const current = toVisit.pop();
+                    if (visited.has(current)) continue;
+                    
+                    visited.add(current);
+                    flockBoids.push(current);
+                    
+                    for (const other of boidsToScan) {
+                        if (!other.isAlive || visited.has(other)) continue;
+                        if (current.position.distanceToSquared(other.position) < FLOCK_DISTANCE_THRESHOLD * FLOCK_DISTANCE_THRESHOLD) {
+                            toVisit.push(other);
+                        }
+                    }
+                }
+                return flockBoids;
+            }
+            
+            for (const boid of boidsToScan) {
+                if (!boid.isAlive || visited.has(boid)) continue;
+                const flockBoids = floodFill(boid);
+                if (flockBoids.length >= MIN_FLOCK_SIZE) {
+                    newFlocksData.push(flockBoids);
+                }
+            }
+            return newFlocksData;
+        }
+
+        // Calculate Lyapunov exponent
+        function calculateLyapunovExponent(livingBoids) {
+            let sumDivergence = 0;
+            let count = 0;
+            
+            for (let i = 0; i < Math.min(50, livingBoids.length); i++) {
+                const boid = livingBoids[i];
+                const prevPos = boidPreviousPositions.get(boid.id);
+                
+                if (!prevPos) continue;
+                
+                // Find nearest neighbor
+                let nearestDist = Infinity;
+                let nearestBoid = null;
+                
+                for (let j = 0; j < livingBoids.length; j++) {
+                    if (i === j) continue;
+                    const dist = boid.position.distanceTo(livingBoids[j].position);
+                    if (dist < nearestDist) {
+                        nearestDist = dist;
+                        nearestBoid = livingBoids[j];
+                    }
+                }
+                
+                if (nearestBoid && nearestDist > 0.1) {
+                    const prevNearestPos = boidPreviousPositions.get(nearestBoid.id);
+                    if (prevNearestPos) {
+                        const prevDist = prevPos.distanceTo(prevNearestPos);
+                        if (prevDist > 0.1) {
+                            const divergence = Math.log(nearestDist / prevDist);
+                            sumDivergence += divergence;
+                            count++;
+                        }
+                    }
+                }
+            }
+            
+            return count > 0 ? sumDivergence / count : 0;
+        }
+
+        // Enhanced tactical balance calculation
+        function calculateTacticalBalance(livingBoids) {
+            let tacticalAdvantage = 0;
+            
+            let formationScore = 0;
+            if (flocks.length > 0 && livingBoids.length > 0) {
+                const averageFlockSize = flocks.reduce((sum, flock) => sum + flock.boids.length, 0) / flocks.length;
+                const flockCoverage = flocks.length > 0 ? (flocks.reduce((sum, flock) => sum + flock.boids.length, 0) / livingBoids.length) : 0;
+                
+                formationScore = (Math.min(averageFlockSize / 15, 1) * 0.6) + (flockCoverage * 0.4);
+            }
+            
+            const currentFishHealth = fishHealth / FISH_MAX_HEALTH;
+            const currentBoidHealth = boidCollectiveHealth / BOID_COLLECTIVE_MAX_HEALTH;
+            
+            const fishHealthChange = currentFishHealth - (lastHealthValues.fish / FISH_MAX_HEALTH);
+            const boidHealthChange = currentBoidHealth - (lastHealthValues.boid / BOID_COLLECTIVE_MAX_HEALTH);
+            
+            let healthMomentumScore = 0;
+            if (behaviorParams.predatorBalance < 0.5) {
+                healthMomentumScore = (currentBoidHealth * 0.6) + (boidHealthChange * 0.4);
+            } else {
+                healthMomentumScore = (currentFishHealth * 0.6) + (fishHealthChange * 0.4);
+            }
+            
+            const recentBites = biteCount - lastSuccessfulActions;
+            let actionScore = 0;
+            
+            if (behaviorParams.predatorBalance < 0.5) {
+                const threatenedCount = livingBoids.filter(b => b.isThreatened).length;
+                const totalBoids = Math.max(1, livingBoids.length);
+                const escapeEfficiency = 1 - (threatenedCount / totalBoids);
+                actionScore = escapeEfficiency - (recentBites * 0.1);
+            } else {
+                const attackingCount = livingBoids.filter(b => b.isThreatened).length;
+                const coordinatedAttackers = livingBoids.filter(b => b.tacticalRole === 'encircling').length;
+                actionScore = (coordinatedAttackers / Math.max(1, attackingCount)) + (recentBites * 0.2);
+            }
+            
+            let positionScore = 0;
+            if (flocks.length > 0 && globalCenterMesh.visible && livingBoids.length > 0) {
+                const distanceToCenter = singleEntityPosition.distanceTo(visualGlobalCenter);
+                const optimalDistance = behaviorParams.predatorBalance < 0.5 ? 100 : 50;
+                
+                if (behaviorParams.predatorBalance < 0.5) {
+                    positionScore = Math.min(distanceToCenter / optimalDistance, 2) - 1;
+                } else {
+                    positionScore = Math.max(1 - (distanceToCenter / optimalDistance), -1);
+                }
+            }
+            
+            tacticalAdvantage = (formationScore * 0.3) + 
+                              (healthMomentumScore * 0.25) + 
+                              (actionScore * 0.25) + 
+                              (positionScore * 0.2);
+            
+            tacticalAdvantage = THREE.MathUtils.clamp(tacticalAdvantage, -1, 1) * 50;
+            
+            lastSuccessfulActions = biteCount;
+            lastHealthValues.fish = fishHealth;
+            lastHealthValues.boid = boidCollectiveHealth;
+            
+            return tacticalAdvantage;
+        }
+
+        // Flock logic
+        function updateFlockLogic(livingBoids) {
+            if (!behaviorParams.enableFlockCenters) {
+                flocks.forEach(flock => flock.mesh.visible = false);
+                globalCenterMesh.visible = false;
+                updateFlockGlobalLines([]);
+                return;
+            }
+            
+            flockDetectionCounter++;
+            if (flockDetectionCounter >= flockUpdateFrequency) {
+                flockDetectionCounter = 0;
+                const newFlocksData = detectFlocks(livingBoids);
+                
+                const updatedFlocks = [];
+                for(let i = 0; i < newFlocksData.length; i++) {
+                    let flockInstance;
+                    if (i < flocks.length) {
+                        flockInstance = flocks[i];
+                    } else {
+                        flockInstance = new Flock(flocks.length + i);
+                    }
+                    flockInstance.boids = newFlocksData[i];
+                    updatedFlocks.push(flockInstance);
+                }
+                
+                for (let i = newFlocksData.length; i < flocks.length; i++) {
+                    flocks[i].destroy();
+                }
+                flocks = updatedFlocks;
+            }
+
+            flocks.forEach(flock => {
+                flock.update();
+            });
+
+            if (flocks.length > 0) {
+                let actualGlobalCenter = getVector();
+                let activeFlockCount = 0;
+                flocks.forEach(flock => {
+                    if (flock.boids.length > 0) {
+                        actualGlobalCenter.add(flock.visualCenter);
+                        activeFlockCount++;
+                    }
+                });
+                
+                if (activeFlockCount > 0) {
+                    actualGlobalCenter.divideScalar(activeFlockCount);
+                    
+                    // Better NaN validation for global center
+                    if (!isFinite(actualGlobalCenter.x) || !isFinite(actualGlobalCenter.y) || !isFinite(actualGlobalCenter.z)) {
+                        console.warn('NaN detected in global center calculation, using previous');
+                        actualGlobalCenter.copy(globalCenter);
+                    }
+                    
+                    globalCenterHistory.push(actualGlobalCenter.clone());
+                    if (globalCenterHistory.length > GLOBAL_CENTER_HISTORY_SIZE) {
+                        const removed = globalCenterHistory.shift();
+                        releaseVector(removed);
+                    }
+                    
+                    const smoothedCenter = getVector();
+                    globalCenterHistory.forEach(pos => smoothedCenter.add(pos));
+                    smoothedCenter.divideScalar(globalCenterHistory.length);
+                    
+                    targetGlobalCenter.copy(smoothedCenter);
+                    releaseVector(smoothedCenter);
+                    
+                    if (visualGlobalCenter.lengthSq() === 0) {
+                        visualGlobalCenter.copy(targetGlobalCenter);
+                        globalCenterVelocity.set(0, 0, 0);
+                        globalCenterAcceleration.set(0, 0, 0);
+                    }
+                    
+                    const targetDiff = getVector().subVectors(targetGlobalCenter, visualGlobalCenter);
+                    const distance = targetDiff.length();
+                    
+                    if (distance > 0.05) {
+                        const desiredAccel = getVector().copy(targetDiff).multiplyScalar(GLOBAL_CENTER_LERP);
+                        
+                        globalCenterAcceleration.lerp(desiredAccel, 1 - GLOBAL_CENTER_INERTIA);
+                        releaseVector(desiredAccel);
+                        
+                        globalCenterVelocity.add(globalCenterAcceleration);
+                        globalCenterVelocity.multiplyScalar(GLOBAL_CENTER_DAMPING);
+                        
+                        const maxVelocity = 2.0;
+                        if (globalCenterVelocity.length() > maxVelocity) {
+                            globalCenterVelocity.normalize().multiplyScalar(maxVelocity);
+                        }
+                        
+                        const normalizedDistance = Math.min(distance / 50, 1);
+                        const easedFactor = 1 - Math.pow(1 - normalizedDistance, 4);
+                        
+                        const movement = getVector().copy(globalCenterVelocity).multiplyScalar(easedFactor);
+                        visualGlobalCenter.add(movement);
+                        
+                        releaseVector(movement);
+                    } else {
+                        globalCenterVelocity.multiplyScalar(GLOBAL_CENTER_DAMPING);
+                        visualGlobalCenter.add(globalCenterVelocity);
+                    }
+                    releaseVector(targetDiff);
+                    
+                    globalCenterMesh.position.copy(visualGlobalCenter);
+                    globalCenterMesh.visible = true;
+                    
+                    const time = Date.now() * 0.001;
+                    const floatY = Math.sin(time * 1.5) * 0.5;
+                    const floatX = Math.cos(time * 0.7) * 0.3;
+                    const floatZ = Math.sin(time * 0.9) * 0.2;
+                    globalCenterMesh.position.y += floatY;
+                    globalCenterMesh.position.x += floatX;
+                    globalCenterMesh.position.z += floatZ;
+                    
+                    globalCenterMesh.scale.setScalar(1 + 0.1 * Math.sin(time * 2));
+                    
+                    const glowIntensity = 0.5 + 0.3 * Math.sin(time * 3);
+                    globalCenterMaterial.emissive.setRGB(0, glowIntensity, 0);
+                } else {
+                    globalCenterMesh.visible = false;
+                }
+                releaseVector(actualGlobalCenter);
+            } else {
+                globalCenterMesh.visible = false;
+                globalCenterHistory.forEach(v => releaseVector(v));
+                globalCenterHistory = [];
+            }
+            
+            updateFlockGlobalLines(flocks);
+        }
+
+        function updateFlockGlobalLines(flocksToShow) {
+            while (flockGlobalLinesGroup.children.length > 0) {
+                const line = flockGlobalLinesGroup.children[0];
+                flockGlobalLinesGroup.remove(line);
+                line.geometry.dispose();
+            }
+            
+            if (!behaviorParams.showFlockGlobalLines || flocksToShow.length === 0 || !globalCenterMesh.visible) return;
+            
+            flocksToShow.forEach(flock => {
+                if (flock.boids.length > 0 && flock.mesh.visible) {
+                    const positions = new Float32Array([
+                        flock.visualCenter.x, flock.visualCenter.y, flock.visualCenter.z,
+                        visualGlobalCenter.x, visualGlobalCenter.y, visualGlobalCenter.z
+                    ]);
+                    const geom = new THREE.BufferGeometry();
+                    geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                    const line = new THREE.Line(geom, new THREE.LineBasicMaterial({ 
+                        color: 0x00ff00, 
+                        opacity: 0.3, 
+                        transparent: true 
+                    }));
+                    flockGlobalLinesGroup.add(line);
+                }
+            });
+        }
+
+        // Draw phase space visualization
+        function drawPhaseSpace() {
+            phaseSpaceCtx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            phaseSpaceCtx.fillRect(0, 0, phaseSpaceCanvas.width, phaseSpaceCanvas.height);
+            
+            // Grid
+            phaseSpaceCtx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            phaseSpaceCtx.lineWidth = 1;
+            
+            const centerX = phaseSpaceCanvas.width / 2;
+            const centerY = phaseSpaceCanvas.height / 2;
+            
+            phaseSpaceCtx.beginPath();
+            phaseSpaceCtx.moveTo(centerX, 0);
+            phaseSpaceCtx.lineTo(centerX, phaseSpaceCanvas.height);
+            phaseSpaceCtx.moveTo(0, centerY);
+            phaseSpaceCtx.lineTo(phaseSpaceCanvas.width, centerY);
+            phaseSpaceCtx.stroke();
+            
+            // Plot boid velocities
+            const scale = phaseSpaceCanvas.width / 4;
+            
+            boids.forEach(boid => {
+                if (!boid.isAlive) return;
+                
+                const maxSpeed = Math.max(boid.maxSpeed || 1, 0.1) * 2;
+                const vx = boid.velocity.x / maxSpeed;
+                const vy = boid.velocity.y / maxSpeed;
+                
+                const px = centerX + vx * scale;
+                const py = centerY - vy * scale;
+                
+                phaseSpaceCtx.fillStyle = boid.isPredator() ? 
+                    'rgba(255, 102, 102, 0.6)' : 
+                    'rgba(102, 255, 102, 0.6)';
+                
+                phaseSpaceCtx.fillRect(px - 1, py - 1, 2, 2);
+            });
+        }
+
+        // Enhanced trend graph with better tactical logic
+        function drawTrendGraph() {
+            trendCtx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+            trendCtx.fillRect(0, 0, trendCanvas.width, trendCanvas.height);
+            
+            // Grid lines
+            trendCtx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            trendCtx.lineWidth = 1;
+            for (let i = 0; i <= 4; i++) {
+                trendCtx.beginPath();
+                trendCtx.moveTo(0, (trendCanvas.height / 4) * i);
+                trendCtx.lineTo(trendCanvas.width, (trendCanvas.height / 4) * i);
+                trendCtx.stroke();
+            }
+            
+            // Center line (emphasized)
+            trendCtx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            trendCtx.lineWidth = 2;
+            trendCtx.beginPath();
+            trendCtx.moveTo(0, trendCanvas.height / 2);
+            trendCtx.lineTo(trendCanvas.width, trendCanvas.height / 2);
+            trendCtx.stroke();
+            
+            if (trendHistory.length > 1) {
+                const maxTrend = 50;
+                const scaleY = trendCanvas.height / (maxTrend * 2);
+                const scaleX = trendCanvas.width / (TREND_HISTORY_SIZE - 1);
+                
+                const lastValue = trendHistory[trendHistory.length - 1];
+                const gradient = trendCtx.createLinearGradient(0, 0, trendCanvas.width, 0);
+                
+                if (lastValue >= 0) {
+                    if (behaviorParams.predatorBalance < 0.5) {
+                        gradient.addColorStop(0, 'rgba(78, 205, 196, 0.3)');
+                        gradient.addColorStop(1, 'rgba(78, 205, 196, 0.9)');
+                    } else {
+                        gradient.addColorStop(0, 'rgba(30, 144, 255, 0.3)');
+                        gradient.addColorStop(1, 'rgba(30, 144, 255, 0.9)');
+                    }
+                } else {
+                    gradient.addColorStop(0, 'rgba(255, 107, 107, 0.3)');
+                    gradient.addColorStop(1, 'rgba(255, 107, 107, 0.9)');
+                }
+                
+                trendCtx.strokeStyle = gradient;
+                trendCtx.lineWidth = 3;
+                trendCtx.beginPath();
+                
+                for (let i = 0; i < trendHistory.length; i++) {
+                    const x = i * scaleX;
+                    const y = trendCanvas.height / 2 - (trendHistory[i] * scaleY);
+                    if (i === 0) trendCtx.moveTo(x, y);
+                    else trendCtx.lineTo(x, y);
+                }
+                trendCtx.stroke();
+                
+                // Fill areas with consistent colors
+                trendCtx.globalAlpha = 0.3;
+                
+                // Top area (positive values - prey advantage)
+                const topGradient = trendCtx.createLinearGradient(0, 0, 0, trendCanvas.height/2);
+                if (behaviorParams.predatorBalance < 0.5) {
+                    topGradient.addColorStop(0, '#4ecdc4');
+                    topGradient.addColorStop(1, 'rgba(78, 205, 196, 0)');
+                } else {
+                    topGradient.addColorStop(0, '#1e90ff');
+                    topGradient.addColorStop(1, 'rgba(30, 144, 255, 0)');
+                }
+                
+                trendCtx.fillStyle = topGradient;
+                trendCtx.beginPath();
+                trendCtx.moveTo(0, trendCanvas.height/2);
+                for (let i = 0; i < trendHistory.length; i++) {
+                    const x = i * scaleX;
+                    const y = trendCanvas.height / 2 - (Math.max(0, trendHistory[i]) * scaleY);
+                    trendCtx.lineTo(x, y);
+                }
+                trendCtx.lineTo((trendHistory.length-1)*scaleX, trendCanvas.height / 2);
+                trendCtx.closePath();
+                trendCtx.fill();
+                
+                // Bottom area (negative values - predator advantage)
+                const bottomGradient = trendCtx.createLinearGradient(0, trendCanvas.height/2, 0, trendCanvas.height);
+                bottomGradient.addColorStop(0, 'rgba(255, 107, 107, 0)');
+                bottomGradient.addColorStop(1, '#ff6b6b');
+                
+                trendCtx.fillStyle = bottomGradient;
+                trendCtx.beginPath();
+                trendCtx.moveTo(0, trendCanvas.height/2);
+                for (let i = 0; i < trendHistory.length; i++) {
+                    const x = i * scaleX;
+                    const y = trendCanvas.height / 2 - (Math.min(0, trendHistory[i]) * scaleY);
+                    trendCtx.lineTo(x, y);
+                }
+                trendCtx.lineTo((trendHistory.length-1)*scaleX, trendCanvas.height / 2);
+                trendCtx.closePath();
+                trendCtx.fill();
+                trendCtx.globalAlpha = 1.0;
+                
+                // Add current value indicator
+                if (trendHistory.length > 0) {
+                    const currentValue = trendHistory[trendHistory.length - 1];
+                    const currentY = trendCanvas.height / 2 - (currentValue * scaleY);
+                    
+                    if (currentValue >= 0) {
+                        trendCtx.fillStyle = behaviorParams.predatorBalance < 0.5 ? '#4ecdc4' : '#1e90ff';
+                    } else {
+                        trendCtx.fillStyle = '#ff6b6b';
+                    }
+                    
+                    trendCtx.beginPath();
+                    trendCtx.arc(trendCanvas.width - 5, currentY, 4, 0, Math.PI * 2);
+                    trendCtx.fill();
+                    
+                    trendCtx.shadowBlur = 10;
+                    trendCtx.shadowColor = trendCtx.fillStyle;
+                    trendCtx.fill();
+                    trendCtx.shadowBlur = 0;
+                    
+                    const valueDisplay = document.getElementById('tacticalCurrentValue');
+                    valueDisplay.textContent = currentValue > 0 ? `+${Math.round(currentValue)}` : Math.round(currentValue).toString();
+                    valueDisplay.style.color = trendCtx.fillStyle;
+                }
+            }
+        }
+
+        function resetStatistics() {
+            trendCounter = 0;
+            trendHistory = [];
+            nearMissCount = 0;
+            biteCount = 0;
+            
+            // Reset tactical tracking
+            tacticalScore = 0;
+            lastSuccessfulActions = 0;
+            formationEfficiency = 0;
+            healthMomentum = 0;
+            lastHealthValues = { fish: 500, boid: 500 };
+            
+            distanceHistory = [];
+            previousAvgDistance = null;
+            distanceTrendCounter = 0;
+            distanceTrendHistory = [];
+            closestApproachEver = Infinity;
+            
+            globalCenterVelocity.set(0, 0, 0);
+            globalCenterAcceleration.set(0, 0, 0);
+            visualGlobalCenter.set(0, 0, 0);
+            targetGlobalCenter.set(0, 0, 0);
+            
+            globalCenterHistory.forEach(v => releaseVector(v));
+            globalCenterHistory = [];
+            
+            trendCtx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+            trendCtx.fillRect(0, 0, trendCanvas.width, trendCanvas.height);
+            distanceCtx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+            distanceCtx.fillRect(0, 0, distanceCanvas.width, distanceCanvas.height);
+            document.getElementById('gameOverMessage').style.display = 'none';
+
+            // Reset health systems
+            fishHealth = FISH_MAX_HEALTH;
+            boidCollectiveHealth = BOID_COLLECTIVE_MAX_HEALTH;
+            singleEntity.health = singleEntity.maxHealth;
+            updateDualHealthBar();
+            
+            document.getElementById('distanceCurrentValue').textContent = '0';
+            document.getElementById('tacticalCurrentValue').textContent = '0';
+            
+            // Reset chaos systems
+            butterflyEffect.perturbations = [];
+            turbulenceField.vortices = [];
+            bifurcationController.currentRegime = 'stable';
+            bifurcationController.transitionChaos = 0;
+            lyapunovHistory = [];
+            boidPreviousPositions.clear();
+            
+            // Reset game over state
+            gameOverStateActive = false;
+            gameOverCheckTimer = 0;
+        }
+
+        function initializeSwarm() {
+            boids.forEach(b => b.destroy());
+            boids = [];
+            flocks.forEach(flock => flock.destroy());
+            flocks = [];
+            
+            screenDims = getScreenDimensions();
+            resetStatistics();
+            
+            singleEntity.state = 'wandering';
+            singleEntity.stateCooldown = 0;
+            singleEntity.position.set(0,0,0);
+            singleEntity.velocity.set((Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2);
+
+            for (let i = 0; i < behaviorParams.particleCount; i++) {
+                boids.push(new Boid());
+            }
+            document.getElementById('startingBoidCount').textContent = behaviorParams.particleCount.toString();
+        }
+        
+        function updateDualHealthBar() {
+            const fishHealthPercent = Math.max(0, fishHealth / FISH_MAX_HEALTH);
+            const boidHealthPercent = Math.max(0, boidCollectiveHealth / BOID_COLLECTIVE_MAX_HEALTH);
+            
+            document.getElementById('fishHealthBar').style.width = (fishHealthPercent * 50) + '%';
+            document.getElementById('boidHealthBar').style.width = (boidHealthPercent * 50) + '%';
+            
+            document.getElementById('fishHealthLabel').textContent = `Big Fish: ${Math.round(fishHealthPercent * 100)}%`;
+            document.getElementById('boidHealthLabel').textContent = `Boids: ${Math.round(boidHealthPercent * 100)}%`;
+            
+            const fishBar = document.getElementById('fishHealthBar');
+            if (fishHealthPercent > 0.66) {
+                fishBar.style.background = 'linear-gradient(90deg, #1e90ff 0%, #4169e1 50%, #6495ed 100%)';
+            } else if (fishHealthPercent > 0.33) {
+                fishBar.style.background = 'linear-gradient(90deg, #9966ff 0%, #8b4789 50%, #9370db 100%)';
+            } else {
+                fishBar.style.background = 'linear-gradient(90deg, #ff6666 0%, #ff4444 50%, #ff8888 100%)';
+            }
+        }
+        
+        // FIXED GAME OVER SYSTEM
+        let gameOverStateActive = false;
+        let gameOverCheckTimer = 0;
+        
+        function checkGameOverConditions() {
+            // Only check every 60 frames (1 second at 60fps)
+            gameOverCheckTimer++;
+            if (gameOverCheckTimer < 60) return;
+            gameOverCheckTimer = 0;
+            
+            // Don't check if already showing game over
+            if (gameOverStateActive) return;
+            
+            const fishHealthPercent = fishHealth / FISH_MAX_HEALTH;
+            const boidHealthPercent = boidCollectiveHealth / BOID_COLLECTIVE_MAX_HEALTH;
+            const livingBoidCount = boids.filter(b => b.isAlive).length;
+            
+            let shouldShowGameOver = false;
+            let message = '';
+            
+            // Check win conditions
+            if (fishHealthPercent <= 0 && behaviorParams.predatorBalance >= 0.5) {
+                shouldShowGameOver = true;
+                message = `🐟 Boids Victory! 🐟<br><span style="font-size: 16px; color: #fff;">The swarm overwhelmed the big fish!</span>`;
+            } else if ((boidHealthPercent <= 0 || livingBoidCount <= 5) && behaviorParams.predatorBalance < 0.5) {
+                shouldShowGameOver = true;
+                const winMessage = livingBoidCount <= 5 ? 'SWARM DEFEATED!' : 'BOIDS OVERWHELMED!';
+                message = `🦈 Big Fish Victory! 🦈<br><span style="font-size: 16px; color: #fff;">${winMessage}</span>`;
+            }
+            
+            // Only show if we have a reason to
+            if (shouldShowGameOver && !gameOverStateActive) {
+                gameOverStateActive = true;
+                const gameOverElement = document.getElementById('gameOverMessage');
+                gameOverElement.innerHTML = message;
+                gameOverElement.style.display = 'block';
+            }
+        }
+        
+        function updateBigFishVisuals() {
+            const healthPercent = Math.max(0, fishHealth / FISH_MAX_HEALTH);
+            
+            if (healthPercent > 0.66) {
+                predatorMaterial.color.setHex(0x1e90ff);
+                predatorMaterial.emissive.setHex(0x000066);
+            } else if (healthPercent > 0.33) {
+                predatorMaterial.color.setHex(0x9966ff);
+                predatorMaterial.emissive.setHex(0x330066);
+            } else if (healthPercent > 0) {
+                predatorMaterial.color.setHex(0xff6666);
+                predatorMaterial.emissive.setHex(0x660000);
+            } else {
+                predatorMaterial.color.setHex(0x333333);
+                predatorMaterial.emissive.setHex(0x000000);
+            }
+        }
+        
+        function updatePredatorGlow() {
+            const glowElement = document.getElementById('predatorGlow');
+            
+            if (behaviorParams.predatorBalance < 0.3) {
+                glowElement.className = 'predator-glow fish-dominant';
+            } else if (behaviorParams.predatorBalance > 0.7) {
+                glowElement.className = 'predator-glow boid-dominant';
+            } else {
+                glowElement.className = 'predator-glow';
+            }
+        }
+
+        function updateUIForBalance() {
+            const balance = behaviorParams.predatorBalance;
+            const fishPower = (1 - balance) * 100;
+            const boidPower = balance * 100;
+            
+            const balanceDisplay = document.getElementById('balanceValueDisplay');
+            if (balance < 0.5) {
+                balanceDisplay.textContent = `Big Fish: ${Math.round(fishPower)}%`;
+                balanceDisplay.style.color = '#ff6b6b';
+            } else if (balance > 0.5) {
+                balanceDisplay.textContent = `Boids: ${Math.round(boidPower)}%`;
+                balanceDisplay.style.color = '#4ecdc4';
+            } else {
+                balanceDisplay.textContent = 'Balanced: 50/50';
+                balanceDisplay.style.color = '#ff9f1c';
+            }
+            
+            const preyTitle = document.getElementById('preyTitle');
+            const predatorTitle = document.getElementById('predatorTitle');
+            const roleSummary = document.getElementById('roleSummary');
+            const entityStateLabel = document.getElementById('entityStateLabel');
+            
+            if (balance < 0.5) {
+                preyTitle.textContent = 'Prey Behavior (Boids)';
+                predatorTitle.textContent = 'Predator Behavior (Big Fish)';
+                roleSummary.textContent = 'Prey: Boids | Predator: Big Fish';
+                entityStateLabel.textContent = 'Big Fish State';
+            } else {
+                preyTitle.textContent = 'Prey Behavior (Big Fish)';
+                predatorTitle.textContent = 'Predator Behavior (Boids)';
+                roleSummary.textContent = 'Prey: Big Fish | Predator: Boids';
+                entityStateLabel.textContent = 'Big Fish State';
+            }
+            
+            updateGraphLabelsForBalance();
+            updatePredatorGlow();
+            updateBigFishVisuals();
+            updateDualHealthBar();
+        }
+        
+        function updateGraphLabelsForBalance() {
+            const balance = behaviorParams.predatorBalance;
+            
+            const distanceLeftLabel = document.getElementById('distanceLeftLabel');
+            const distanceRightLabel = document.getElementById('distanceRightLabel');
+            const tacticalLeftLabel = document.getElementById('tacticalLeftLabel');
+            const tacticalRightLabel = document.getElementById('tacticalRightLabel');
+            
+            const distanceYLabels = document.getElementById('distanceYLabels');
+            const tacticalYLabels = document.getElementById('tacticalYLabels');
+            
+            if (balance < 0.5) {
+                distanceLeftLabel.innerHTML = 'Big Fish Closing ↓';
+                distanceLeftLabel.style.color = '#ff6b6b';
+                distanceRightLabel.innerHTML = '↑ Boids Escaping';
+                distanceRightLabel.style.color = '#1e90ff';
+                
+                tacticalLeftLabel.innerHTML = 'Predator Advantage ↓';
+                tacticalLeftLabel.style.color = '#ff6b6b';
+                tacticalRightLabel.innerHTML = '↑ Prey Advantage';
+                tacticalRightLabel.style.color = '#4ecdc4';
+                
+                distanceYLabels.innerHTML = `
+                    <span>Escaping</span>
+                    <span>Even</span>
+                    <span>Caught</span>
+                `;
+                
+                tacticalYLabels.innerHTML = `
+                    <span>Winning</span>
+                    <span>Balanced</span>
+                    <span>Losing</span>
+                `;
+            } else {
+                distanceLeftLabel.innerHTML = 'Boids Closing ↓';
+                distanceLeftLabel.style.color = '#4ecdc4';
+                distanceRightLabel.innerHTML = '↑ Big Fish Escaping';
+                distanceRightLabel.style.color = '#1e90ff';
+                
+                tacticalLeftLabel.innerHTML = 'Predator Advantage ↓';
+                tacticalLeftLabel.style.color = '#ff6b6b';
+                tacticalRightLabel.innerHTML = '↑ Prey Advantage';
+                tacticalRightLabel.style.color = '#1e90ff';
+                
+                distanceYLabels.innerHTML = `
+                    <span>Freedom</span>
+                    <span>Danger</span>
+                    <span>Swarmed</span>
+                `;
+                
+                tacticalYLabels.innerHTML = `
+                    <span>Healthy</span>
+                    <span>Stressed</span>
+                    <span>Critical</span>
+                `;
+            }
+            
+            drawTrendGraph();
+            drawDistanceGraph();
+        }
+
+        // Chaos control sliders
+        const chaosControls = {
+            chaosLevel: document.getElementById('chaosLevel'),
+            butterflyStrength: document.getElementById('butterflyStrength'),
+            turbulenceIntensity: document.getElementById('turbulenceIntensity'),
+            levyProbability: document.getElementById('levyProbability'),
+            enableVortices: document.getElementById('enableVortices'),
+            showChaosIndicators: document.getElementById('showChaosIndicators')
+        };
+
+        function updateChaosControls() {
+            chaosSystem.globalChaosLevel = parseFloat(chaosControls.chaosLevel.value);
+            butterflyEffect.butterflyStrength = parseFloat(chaosControls.butterflyStrength.value);
+            turbulenceField.turbulenceIntensity = parseFloat(chaosControls.turbulenceIntensity.value);
+            levyFlight.explorationProbability = parseFloat(chaosControls.levyProbability.value) / 100;
+            behaviorParams.chaos.enableVortices = chaosControls.enableVortices.checked;
+            behaviorParams.showChaosIndicators = chaosControls.showChaosIndicators.checked;
+            
+            // Enable/disable chaos systems based on values
+            butterflyEffect.enabled = butterflyEffect.butterflyStrength > 0.01;
+            turbulenceField.enabled = turbulenceField.turbulenceIntensity > 0.01 && behaviorParams.chaos.enableVortices;
+            levyFlight.enabled = levyFlight.explorationProbability > 0.0001;
+            bifurcationController.enabled = chaosSystem.globalChaosLevel > 0.2;
+            
+            // Update displays
+            document.getElementById('chaosLevelValue').textContent = chaosSystem.globalChaosLevel.toFixed(1);
+            document.getElementById('butterflyStrengthValue').textContent = butterflyEffect.butterflyStrength.toFixed(1);
+            document.getElementById('turbulenceIntensityValue').textContent = turbulenceField.turbulenceIntensity.toFixed(1);
+            document.getElementById('levyProbabilityValue').textContent = (levyFlight.explorationProbability * 100).toFixed(1) + '%';
+        }
+
+        Object.entries(chaosControls).forEach(([key, control]) => {
+            if (control.type === 'checkbox') {
+                control.addEventListener('change', updateChaosControls);
+            } else {
+                control.addEventListener('input', updateChaosControls);
+            }
+        });
+
+        // Predator balance slider
+        const predatorBalanceSlider = document.getElementById('predatorBalance');
+        predatorBalanceSlider.addEventListener('input', (e) => {
+            behaviorParams.predatorBalance = parseFloat(e.target.value);
+            updateUIForBalance();
+            
+            const oldPredator = singleEntity.isPredator();
+            if (oldPredator !== (behaviorParams.predatorBalance < 0.5)) {
+                fishHealth = FISH_MAX_HEALTH;
+                boidCollectiveHealth = BOID_COLLECTIVE_MAX_HEALTH;
+                singleEntity.state = 'wandering';
+                singleEntity.stateCooldown = 30;
+                boids.forEach(b => b.isThreatened = false);
+                resetStatistics();
+            }
+        });
+
+        // Enhanced control system
+        document.getElementById('enableFlockCenters').addEventListener('change', (e) => {
+            behaviorParams.enableFlockCenters = e.target.checked;
+        });
+
+        document.getElementById('showFlockGlobalLines').addEventListener('change', (e) => {
+            behaviorParams.showFlockGlobalLines = e.target.checked;
+        });
+
+        // Tooltip functionality
+        const distanceInfoBubble = document.getElementById('distanceInfoBubble');
+        const distanceTooltip = document.getElementById('distanceTooltip');
+        const tacticalInfoBubble = document.getElementById('tacticalInfoBubble');
+        const tacticalTooltip = document.getElementById('tacticalTooltip');
+
+        distanceInfoBubble.addEventListener('mouseenter', () => {
+            distanceTooltip.classList.add('visible');
+        });
+
+        distanceInfoBubble.addEventListener('mouseleave', () => {
+            distanceTooltip.classList.remove('visible');
+        });
+
+        tacticalInfoBubble.addEventListener('mouseenter', () => {
+            tacticalTooltip.classList.add('visible');
+        });
+
+        tacticalInfoBubble.addEventListener('mouseleave', () => {
+            tacticalTooltip.classList.remove('visible');
+        });
+
+        // Mouse controls - CHAOS EFFECTS DISABLED
+        renderer.domElement.addEventListener('click', (e) => {
+            // Click effects disabled for debugging
+            /*
+            if (e.target === renderer.domElement) {
+                // Convert click to world coordinates
+                const rect = renderer.domElement.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+                
+                const vector = new THREE.Vector3(x, y, 0.5);
+                vector.unproject(camera);
+                const dir = vector.sub(camera.position).normalize();
+                const distance = -camera.position.z / dir.z;
+                const pos = camera.position.clone().add(dir.multiplyScalar(distance));
+                
+                // Inject butterfly perturbation at click location (if enabled)
+                if (butterflyEffect.enabled) {
+                    butterflyEffect.injectPerturbation(pos, 0.001); // Reduced magnitude
+                }
+                
+                // Create vortex if enabled (with lower probability)
+                if (behaviorParams.chaos.enableVortices && turbulenceField.enabled && Math.random() < 0.3) {
+                    turbulenceField.createVortex(pos, 0.5, 60); // Reduced strength
+                }
+            }
+            */
+        });
+
+        document.addEventListener('mousedown', (e) => { 
+            if(e.target === renderer.domElement || e.target === document.body) { 
+                isMouseDown = true; mouseX = e.clientX; mouseY = e.clientY; 
+            }
+        });
+        document.addEventListener('mouseup', () => { isMouseDown = false; });
+        document.addEventListener('mousemove', (e) => {
+            if (isMouseDown) {
+                targetX += (e.clientX - mouseX) * 0.01;
+                targetY += (e.clientY - mouseY) * 0.01;
+                mouseX = e.clientX; mouseY = e.clientY;
+            }
+        });
+        document.addEventListener('wheel', (e) => {
+            const controlsRect = document.getElementById('controls').getBoundingClientRect();
+            const mouseX = e.clientX;
+            const mouseY = e.clientY;
+            
+            if (mouseX >= controlsRect.left && mouseX <= controlsRect.right &&
+                mouseY >= controlsRect.top && mouseY <= controlsRect.bottom) {
+                return;
+            }
+            
+            cameraDistance += e.deltaY * 0.3;
+            cameraDistance = Math.max(100, Math.min(1500, cameraDistance));
+            screenDims = getScreenDimensions();
+        });
+
+        // Control panel functionality
+        const controls = {
+            particleCount: document.getElementById('particleCount'),
+            speedSmoothing: document.getElementById('speedSmoothing'),
+            boundaryStrength: document.getElementById('boundaryStrength'),
+            flockUpdateFreq: document.getElementById('flockUpdateFreq'),
+            preyCalmSpeed: document.getElementById('preyCalmSpeed'),
+            preyEscapeSpeed: document.getElementById('preyEscapeSpeed'),
+            preyDetectionRange: document.getElementById('preyDetectionRange'),
+            preyEscapeForce: document.getElementById('preyEscapeForce'),
+            predatorWanderSpeed: document.getElementById('predatorWanderSpeed'),
+            predatorHuntSpeed: document.getElementById('predatorHuntSpeed'),
+            predatorDetectionRange: document.getElementById('predatorDetectionRange'),
+            predatorHuntForce: document.getElementById('predatorHuntForce'),
+            separation: document.getElementById('separation'),
+            alignment: document.getElementById('alignment'),
+            cohesion: document.getElementById('cohesion')
+        };
+
+        function updateControls() {
+            behaviorParams.prey.calmSpeed = parseFloat(controls.preyCalmSpeed.value);
+            behaviorParams.prey.escapeSpeed = parseFloat(controls.preyEscapeSpeed.value);
+            behaviorParams.prey.detectionRange = parseFloat(controls.preyDetectionRange.value);
+            behaviorParams.prey.escapeForce = parseFloat(controls.preyEscapeForce.value);
+            behaviorParams.predator.wanderSpeed = parseFloat(controls.predatorWanderSpeed.value);
+            behaviorParams.predator.huntSpeed = parseFloat(controls.predatorHuntSpeed.value);
+            behaviorParams.predator.detectionRange = parseFloat(controls.predatorDetectionRange.value);
+            behaviorParams.predator.huntForce = parseFloat(controls.predatorHuntForce.value);
+            behaviorParams.flocking.separationForce = parseFloat(controls.separation.value);
+            behaviorParams.flocking.alignmentForce = parseFloat(controls.alignment.value);
+            behaviorParams.flocking.cohesionForce = parseFloat(controls.cohesion.value);
+            behaviorParams.speedSmoothing = parseFloat(controls.speedSmoothing.value);
+            behaviorParams.boundaryStrength = parseFloat(controls.boundaryStrength.value);
+            
+            flockUpdateFrequency = parseInt(controls.flockUpdateFreq.value);
+            
+            const newParticleCount = parseInt(controls.particleCount.value);
+            if (newParticleCount !== behaviorParams.particleCount) {
+                behaviorParams.particleCount = newParticleCount;
+                
+                // Reset game over when count changes
+                gameOverStateActive = false;
+                gameOverCheckTimer = 0;
+                document.getElementById('gameOverMessage').style.display = 'none';
+                
+                initializeSwarm();
+            }
+
+            // Update value displays
+            for(const key in controls) {
+                const displayId = key + "Value";
+                const displayElem = document.getElementById(displayId);
+                if(displayElem) {
+                    if (key === "speedSmoothing") displayElem.textContent = parseFloat(controls[key].value).toFixed(2);
+                    else if (key === "particleCount" || key.includes("DetectionRange") || key === "flockUpdateFreq") displayElem.textContent = controls[key].value;
+                    else displayElem.textContent = parseFloat(controls[key].value).toFixed(1);
+                }
+            }
+        }
+
+        Object.values(controls).forEach(control => control.addEventListener('input', updateControls));
+
+        // Distance graph
+        function drawDistanceGraph() {
+            distanceCtx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+            distanceCtx.fillRect(0, 0, distanceCanvas.width, distanceCanvas.height);
+            
+            // Grid lines
+            distanceCtx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            distanceCtx.lineWidth = 1;
+            for (let i = 0; i <= 4; i++) {
+                distanceCtx.beginPath();
+                distanceCtx.moveTo(0, (distanceCanvas.height / 4) * i);
+                distanceCtx.lineTo(distanceCanvas.width, (distanceCanvas.height / 4) * i);
+                distanceCtx.stroke();
+            }
+            
+            // Center line (emphasized)
+            distanceCtx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            distanceCtx.lineWidth = 2;
+            distanceCtx.beginPath();
+            distanceCtx.moveTo(0, distanceCanvas.height / 2);
+            distanceCtx.lineTo(distanceCanvas.width, distanceCanvas.height / 2);
+            distanceCtx.stroke();
+            
+            if (distanceTrendHistory.length > 1) {
+                const maxTrend = 50;
+                const scaleY = distanceCanvas.height / (maxTrend * 2);
+                const scaleX = distanceCanvas.width / (TREND_HISTORY_SIZE - 1);
+                
+                distanceCtx.beginPath();
+                distanceCtx.moveTo(0, distanceCanvas.height / 2);
+                
+                for (let i = 0; i < distanceTrendHistory.length - 1; i++) {
+                    const currentVal = distanceTrendHistory[i];
+                    const nextVal = distanceTrendHistory[i + 1];
+                    
+                    const x1 = i * scaleX;
+                    const y1 = distanceCanvas.height / 2 - (currentVal * scaleY);
+                    const x2 = (i + 1) * scaleX;
+                    const y2 = distanceCanvas.height / 2 - (nextVal * scaleY);
+                    
+                    distanceCtx.lineTo(x1, y1);
+                    if (i === distanceTrendHistory.length - 2) {
+                        distanceCtx.lineTo(x2, y2);
+                    }
+                }
+                
+                const lastValue = distanceTrendHistory[distanceTrendHistory.length - 1];
+                const lineGradient = distanceCtx.createLinearGradient(0, 0, distanceCanvas.width, 0);
+                
+                if (behaviorParams.predatorBalance < 0.5) {
+                    if (lastValue >= 0) {
+                        lineGradient.addColorStop(0, 'rgba(30, 144, 255, 0.3)');
+                        lineGradient.addColorStop(1, 'rgba(30, 144, 255, 0.9)');
+                    } else {
+                        lineGradient.addColorStop(0, 'rgba(255, 107, 107, 0.3)');
+                        lineGradient.addColorStop(1, 'rgba(255, 107, 107, 0.9)');
+                    }
+                } else {
+                    if (lastValue >= 0) {
+                        lineGradient.addColorStop(0, 'rgba(30, 144, 255, 0.3)');
+                        lineGradient.addColorStop(1, 'rgba(30, 144, 255, 0.9)');
+                    } else {
+                        lineGradient.addColorStop(0, 'rgba(78, 205, 196, 0.3)');
+                        lineGradient.addColorStop(1, 'rgba(78, 205, 196, 0.9)');
+                    }
+                }
+                
+                distanceCtx.strokeStyle = lineGradient;
+                distanceCtx.lineWidth = 3;
+                distanceCtx.stroke();
+                
+                // Fill area under/above the line with gradient
+                distanceCtx.globalAlpha = 0.3;
+                
+                // Positive area (escaping)
+                const topGradient = distanceCtx.createLinearGradient(0, 0, 0, distanceCanvas.height/2);
+                topGradient.addColorStop(0, '#1e90ff');
+                topGradient.addColorStop(1, 'rgba(30, 144, 255, 0)');
+                
+                distanceCtx.fillStyle = topGradient;
+                distanceCtx.beginPath();
+                distanceCtx.moveTo(0, distanceCanvas.height/2);
+                for (let i = 0; i < distanceTrendHistory.length; i++) {
+                    const x = i * scaleX;
+                    const y = distanceCanvas.height / 2 - (Math.max(0, distanceTrendHistory[i]) * scaleY);
+                    distanceCtx.lineTo(x, y);
+                }
+                distanceCtx.lineTo((distanceTrendHistory.length-1)*scaleX, distanceCanvas.height / 2);
+                distanceCtx.closePath();
+                distanceCtx.fill();
+                
+                // Negative area (closing in)
+                const bottomGradient = distanceCtx.createLinearGradient(0, distanceCanvas.height/2, 0, distanceCanvas.height);
+                if (behaviorParams.predatorBalance < 0.5) {
+                    bottomGradient.addColorStop(0, 'rgba(255, 107, 107, 0)');
+                    bottomGradient.addColorStop(1, '#ff6b6b');
+                } else {
+                    bottomGradient.addColorStop(0, 'rgba(78, 205, 196, 0)');
+                    bottomGradient.addColorStop(1, '#4ecdc4');
+                }
+                
+                distanceCtx.fillStyle = bottomGradient;
+                distanceCtx.beginPath();
+                distanceCtx.moveTo(0, distanceCanvas.height/2);
+                for (let i = 0; i < distanceTrendHistory.length; i++) {
+                    const x = i * scaleX;
+                    const y = distanceCanvas.height / 2 - (Math.min(0, distanceTrendHistory[i]) * scaleY);
+                    distanceCtx.lineTo(x, y);
+                }
+                distanceCtx.lineTo((distanceTrendHistory.length-1)*scaleX, distanceCanvas.height / 2);
+                distanceCtx.closePath();
+                distanceCtx.fill();
+                distanceCtx.globalAlpha = 1.0;
+                
+                // Add current value indicator with glow
+                if (distanceTrendHistory.length > 0) {
+                    const currentValue = distanceTrendHistory[distanceTrendHistory.length - 1];
+                    const currentY = distanceCanvas.height / 2 - (currentValue * scaleY);
+                    
+                    distanceCtx.fillStyle = currentValue >= 0 ? '#1e90ff' : 
+                        (behaviorParams.predatorBalance < 0.5 ? '#ff6b6b' : '#4ecdc4');
+                    distanceCtx.beginPath();
+                    distanceCtx.arc(distanceCanvas.width - 5, currentY, 4, 0, Math.PI * 2);
+                    distanceCtx.fill();
+                    
+                    distanceCtx.shadowBlur = 10;
+                    distanceCtx.shadowColor = distanceCtx.fillStyle;
+                    distanceCtx.fill();
+                    distanceCtx.shadowBlur = 0;
+                    
+                    const valueDisplay = document.getElementById('distanceCurrentValue');
+                    valueDisplay.textContent = currentValue > 0 ? `+${Math.round(currentValue)}` : Math.round(currentValue).toString();
+                    valueDisplay.style.color = currentValue >= 0 ? '#1e90ff' : 
+                        (behaviorParams.predatorBalance < 0.5 ? '#ff6b6b' : '#4ecdc4');
+                }
+            }
+        }
+
+        // Statistics update
+        function updateStatsDisplay(livingBoids) {
+            statsUpdateCounter++;
+            if (statsUpdateCounter < 15) return;
+            statsUpdateCounter = 0;
+
+            document.getElementById('livingBoidCount').textContent = livingBoids.length.toString();
+            document.getElementById('activeFlocks').textContent = flocks.filter(f => f.boids.length > 0).length.toString();
+            
+            let currentThreatenedCount = 0;
+            let currentCalmCount = 0;
+            let encirclingCount = 0;
+            let exploringCount = 0;
+            
+            livingBoids.forEach(b => {
+                if (b.isThreatened) {
+                    currentThreatenedCount++;
+                    if (b.tacticalRole === 'encircling') encirclingCount++;
+                } else {
+                    currentCalmCount++;
+                }
+                if (b.isExploring) exploringCount++;
+            });
+            
+            document.getElementById('calmCount').textContent = currentCalmCount.toString();
+            document.getElementById('threatenedCount').textContent = currentThreatenedCount.toString();
+            document.getElementById('entityState').textContent = singleEntity.state.charAt(0).toUpperCase() + singleEntity.state.slice(1);
+            document.getElementById('biteCount').textContent = biteCount.toString();
+            
+            // Chaos stats
+            const regime = bifurcationController.currentRegime;
+            document.getElementById('chaosRegime').textContent = regime.replace(/_/g, ' ');
+            document.getElementById('activeVortices').textContent = turbulenceField.vortices.length.toString();
+            document.getElementById('butterflyCascades').textContent = butterflyEffect.perturbations.length.toString();
+            document.getElementById('exploringBoids').textContent = exploringCount.toString();
+            
+            // Calculate and display Lyapunov exponent
+            const lyapunov = calculateLyapunovExponent(livingBoids);
+            lyapunovHistory.push(lyapunov);
+            if (lyapunovHistory.length > 30) lyapunovHistory.shift();
+            
+            const avgLyapunov = lyapunovHistory.reduce((a, b) => a + b, 0) / lyapunovHistory.length;
+            document.getElementById('lyapunovExponent').textContent = avgLyapunov.toFixed(3);
+
+            // Distance tracking
+            if (flocks.length > 0 && globalCenterMesh.visible && livingBoids.length > 0) {
+                const distToGlobalCenter = singleEntityPosition.distanceTo(visualGlobalCenter);
+                distanceHistory.push(distToGlobalCenter);
+                if (distanceHistory.length > DISTANCE_HISTORY_SIZE) distanceHistory.shift();
+                
+                if (distToGlobalCenter < closestApproachEver) closestApproachEver = distToGlobalCenter;
+                
+                if (distanceHistory.length > 0) {
+                    const avgDist = distanceHistory.reduce((a, b) => a + b, 0) / distanceHistory.length;
+                    if (previousAvgDistance !== null && livingBoids.length > 0) {
+                        if (avgDist > previousAvgDistance) distanceTrendCounter = Math.min(distanceTrendCounter + 1, 50);
+                        else if (avgDist < previousAvgDistance) distanceTrendCounter = Math.max(distanceTrendCounter - 1, -50);
+                    }
+                    previousAvgDistance = avgDist;
+                }
+                
+                distanceTrendHistory.push(distanceTrendCounter);
+                if (distanceTrendHistory.length > TREND_HISTORY_SIZE) distanceTrendHistory.shift();
+            }
+
+            // Tactical balance calculation
+            const newTacticalScore = calculateTacticalBalance(livingBoids);
+            trendHistory.push(newTacticalScore);
+            if (trendHistory.length > TREND_HISTORY_SIZE) trendHistory.shift();
+            
+            // Update graphs
+            graphUpdateCounter++;
+            distanceGraphUpdateCounter++;
+            if (graphUpdateCounter >= 5) {
+                drawTrendGraph();
+                drawPhaseSpace();
+                graphUpdateCounter = 0;
+            }
+            if (distanceGraphUpdateCounter >= 5) {
+                drawDistanceGraph();
+                distanceGraphUpdateCounter = 0;
+            }
+        }
+
+        updateControls();
+        updateChaosControls(); // Initialize chaos controls with correct values
+        updateUIForBalance();
+        initializeSwarm();
+
+        // Main animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            const frameStart = performance.now();
+            const dt = 0.016; // 60 FPS target
+            
+            frameCount++;
+            frameCounter++;
+            
+            // Calculate FPS
+            if (frameStart >= lastTime + 1000) {
+                fps = frameCount;
+                frameCount = 0;
+                lastTime = frameStart;
+                updatePerformanceMode();
+            }
+
+            // Update chaos systems - DISABLED FOR NOW
+            /*
+            if (chaosSystem.globalChaosLevel > 0.05) {
+                chaosSystem.updateGlobalChaos(dt);
+            }
+            
+            if (turbulenceField.enabled) {
+                turbulenceField.update(dt);
+            }
+            
+            // Check for bifurcation transitions (only if enabled)
+            let regime = { regime: 'stable', chaosMultiplier: 0.1 };
+            if (bifurcationController.enabled) {
+                regime = bifurcationController.updateBehaviorRegime(
+                    behaviorParams.predatorBalance, 
+                    boids
+                );
+            }
+            
+            // Inject random perturbations (REDUCED FREQUENCY)
+            if (Math.random() < 0.0005 && behaviorParams.showChaosIndicators && butterflyEffect.enabled) {
+                const randomBoid = boids[Math.floor(Math.random() * boids.length)];
+                if (randomBoid && randomBoid.isAlive) {
+                    butterflyEffect.injectPerturbation(randomBoid.position, 0.0001); // Reduced magnitude
+                }
+            }
+            
+            // Create random vortices (REDUCED FREQUENCY)
+            if (behaviorParams.chaos.enableVortices && turbulenceField.enabled && 
+                Math.random() < 0.0002 && turbulenceField.vortices.length < turbulenceField.maxVortices) {
+                const vortexPos = new THREE.Vector3(
+                    (Math.random() - 0.5) * screenDims.width,
+                    (Math.random() - 0.5) * screenDims.height,
+                    (Math.random() - 0.5) * screenDims.depth
+                );
+                turbulenceField.createVortex(vortexPos, 0.5, 60); // Reduced strength and radius
+            }
+            */
+
+            // Camera update
+            const camX = Math.cos(targetX) * Math.cos(targetY) * cameraDistance;
+            const camY = Math.sin(targetY) * cameraDistance;
+            const camZ = Math.sin(targetX) * Math.cos(targetY) * cameraDistance;
+            camera.position.set(camX, camY, camZ);
+            camera.lookAt(0,0,0);
+
+            const livingBoids = boids.filter(b => b.isAlive);
+
+            // Update spatial hash
+            spatialGrid.clear();
+            livingBoids.forEach(boid => spatialGrid.insert(boid));
+
+            // Update single entity
+            if (!(fishHealth <= 0 && !singleEntity.isPredator())) {
+                singleEntity.update(livingBoids);
+            }
+            predatorMesh.position.copy(singleEntityPosition);
+            
+            // Smooth rotation for predator mesh
+            if (singleEntity.velocity.lengthSq() > 0.04) { // 0.2^2
+                const targetRotation = new THREE.Quaternion();
+                const lookDirection = singleEntity.velocity.clone().normalize();
+                
+                // Create rotation matrix from velocity direction
+                const rotationMatrix = new THREE.Matrix4();
+                let up = new THREE.Vector3(0, 1, 0);
+                
+                // If velocity is mostly vertical, use different up vector
+                if (Math.abs(lookDirection.y) > 0.95) {
+                    up.set(1, 0, 0);
+                }
+                
+                // Calculate right vector
+                const right = new THREE.Vector3().crossVectors(up, lookDirection).normalize();
+                
+                // Recalculate up to ensure orthogonality
+                const realUp = new THREE.Vector3().crossVectors(lookDirection, right).normalize();
+                
+                // Build rotation matrix
+                rotationMatrix.makeBasis(right, realUp, lookDirection);
+                targetRotation.setFromRotationMatrix(rotationMatrix);
+                
+                // Smooth rotation using slerp
+                predatorMesh.quaternion.slerp(targetRotation, 0.15);
+            }
+
+            // Update predator visuals
+            if (singleEntity.isPredator()) {
+                if (singleEntity.state === 'hunting') {
+                    const scale = 1.2 + 0.3 * Math.sin(Date.now() * 0.01) * singleEntity.getPredatorPower();
+                    predatorMesh.scale.setScalar(scale);
+                    const emissiveIntensity = 0x880000 * singleEntity.getPredatorPower();
+                    predatorMaterial.emissive.setHex(emissiveIntensity);
+                } else {
+                    predatorMesh.scale.setScalar(1 + 0.1 * Math.sin(Date.now() * 0.003));
+                    updateBigFishVisuals();
+                }
+            } else {
+                updateBigFishVisuals();
+                predatorMesh.scale.setScalar(1 + 0.05 * Math.sin(Date.now() * 0.002));
+            }
+
+            // Update boids
+            boids.forEach(boid => { if (boid.isAlive) boid.update(dt); });
+            
+            // Propagate butterfly cascades - DISABLED FOR NOW
+            // const cascadeCount = butterflyEffect.propagateCascade(livingBoids, spatialGrid);
+
+            // Bite logic - Better rate limiting to prevent health spikes
+            const fishPower = 1 - behaviorParams.predatorBalance;
+            const boidPower = behaviorParams.predatorBalance;
+            
+            // Only allow bites every few frames
+            if (frameCount % 3 === 0) { // Every 3 frames = ~20 times per second
+                if (singleEntity.isPredator()) {
+                    // Big Fish is predator - hunts boids
+                    const boidsToRemove = [];
+                    livingBoids.forEach(boid => {
+                        if (boid.position.distanceToSquared(singleEntityPosition) < BITE_DISTANCE_SQ) {
+                            const damage = Math.floor(8 * fishPower);
+                            boidCollectiveHealth = Math.max(0, boidCollectiveHealth - damage);
+                            boidsToRemove.push(boid);
+                            biteCount++;
+                        }
+                    });
+                    
+                    // Remove bitten boids
+                    boidsToRemove.forEach(boid => boid.kill());
+                    
+                } else {
+                    // Boids are predators - hunt big fish
+                    if (fishHealth > 0) {
+                        let bitesThisFrame = 0;
+                        livingBoids.forEach(boid => {
+                            if (boid.isThreatened && 
+                                boid.position.distanceToSquared(singleEntityPosition) < BITE_DISTANCE_SQ) {
+                                // Limit to 1 bite per frame cycle
+                                if (bitesThisFrame < 1 && singleEntity.takeDamage()) {
+                                    biteCount++;
+                                    bitesThisFrame++;
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+            
+            updateFlockLogic(livingBoids);
+            
+            // Update predator tracking line
+            if (behaviorParams.showFlockGlobalLines && singleEntity.isPredator() && 
+                (singleEntity.state === 'hunting') && singleEntity.currentTarget) {
+                const positions = predatorTrackingLine.geometry.attributes.position.array;
+                positions[0] = singleEntityPosition.x; 
+                positions[1] = singleEntityPosition.y; 
+                positions[2] = singleEntityPosition.z;
+                positions[3] = singleEntity.currentTarget.x; 
+                positions[4] = singleEntity.currentTarget.y; 
+                positions[5] = singleEntity.currentTarget.z;
+                predatorTrackingLine.geometry.attributes.position.needsUpdate = true;
+                predatorTrackingLine.visible = true;
+            } else {
+                predatorTrackingLine.visible = false;
+            }
+            
+            updateStatsDisplay(livingBoids);
+            checkGameOverConditions();
+
+            // Update performance stats
+            document.getElementById('fpsDisplay').textContent = fps.toString();
+            document.getElementById('perfBoids').textContent = livingBoids.length;
+            document.getElementById('perfFPS').textContent = fps;
+
+            stars.rotation.y += 0.0002;
+            renderer.render(scene, camera);
+            
+            updateTimeMs = performance.now() - frameStart;
+            document.getElementById('updateTime').textContent = updateTimeMs.toFixed(1);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            screenDims = getScreenDimensions();
+        });
+
+        animate();
+    </script>
+</body>
+</html>
