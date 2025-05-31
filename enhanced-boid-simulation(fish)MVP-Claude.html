@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced 3D Boid Simulation - Phase 1</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            color: white;
+        }
+        
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+            min-width: 320px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-section {
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .section-title {
+            font-size: 14px;
+            color: #ff9f1c;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .section-title.general { color: #66ff66; }
+        .section-title.prey { color: #4ecdc4; }
+        .section-title.predator { color: #ff6b6b; }
+        .section-title.environment { color: #9966ff; }
+        .section-title.performance { color: #ffff66; }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            color: #66d9ef;
+            font-weight: bold;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            margin-bottom: 5px;
+            appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, #ff9f1c, #4ecdc4);
+            outline: none;
+            transition: background 0.3s ease;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            transition: transform 0.1s ease;
+        }
+        
+        .value-display {
+            font-size: 11px;
+            color: #a8d8ea;
+            text-align: center;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .checkbox-group label {
+            margin: 0;
+            cursor: pointer;
+            color: #4ecdc4;
+        }
+        
+        #stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            min-width: 250px;
+            max-height: calc(90vh - 220px);
+            overflow-y: auto;
+        }
+        
+        .stat-line {
+            margin: 5px 0;
+            font-size: 12px;
+        }
+        
+        .stat-value {
+            color: #4ecdc4;
+            font-weight: bold;
+        }
+        
+        .performance-stat {
+            color: #66ff66;
+            font-weight: bold;
+        }
+        
+        .warning-stat {
+            color: #ff9f1c;
+            font-weight: bold;
+        }
+        
+        .stat-section {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #fff;
+            text-align: center;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        #dualHealthBar {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: clamp(300px, 60%, 600px);
+            height: 40px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            overflow: hidden;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #fishHealthBar {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 50%;
+            background: linear-gradient(90deg, #1e90ff 0%, #4169e1 50%, #6495ed 100%);
+            transition: all 0.3s ease;
+            transform-origin: right center;
+        }
+        
+        #boidHealthBar {
+            position: absolute;
+            right: 0;
+            top: 0;
+            height: 100%;
+            width: 50%;
+            background: linear-gradient(90deg, #ffa500 0%, #ff8c00 50%, #ff7f50 100%);
+            transition: all 0.3s ease;
+            transform-origin: left center;
+        }
+        
+        #healthBarDivider {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            z-index: 10;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        
+        .health-label {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
+            z-index: 5;
+            white-space: nowrap;
+        }
+        
+        .health-label.fish {
+            left: 15px;
+        }
+        
+        .health-label.boid {
+            right: 15px;
+        }
+        
+        #performanceMonitor {
+            position: absolute;
+            bottom: 100px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 11px;
+            min-width: 200px;
+        }
+        
+        .perf-indicator {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.6);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            color: #66ff66;
+            z-index: 101;
+            text-align: center;
+        }
+        
+        .loading-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20px;
+            color: #4ecdc4;
+            text-align: center;
+            z-index: 200;
+        }
+        
+        #info {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            max-width: 300px;
+            font-size: 12px;
+        }
+        
+        /* Scrollbar styling */
+        #controls::-webkit-scrollbar, #stats::-webkit-scrollbar {
+            width: 8px;
+        }
+        #controls::-webkit-scrollbar-track, #stats::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        #controls::-webkit-scrollbar-thumb, #stats::-webkit-scrollbar-thumb {
+            background: #ff9f1c;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="loadingIndicator" class="loading-indicator">
+        <div>Initializing Enhanced Simulation...</div>
+        <div style="font-size: 14px; margin-top: 10px;">Loading WebGL2 and Workers</div>
+    </div>
+
+    <div class="perf-indicator">
+        <span id="perfBoids">0</span> boids @ <span id="perfFPS">60</span> FPS
+        <div id="perfMode" style="font-size: 10px; margin-top: 2px;">Instanced: <span id="instancedStatus">Enabled</span></div>
+    </div>
+
+    <div id="dualHealthBar">
+        <div id="fishHealthBar"></div>
+        <div id="boidHealthBar"></div>
+        <div id="healthBarDivider"></div>
+        <div class="health-label fish" id="fishHealthLabel">Bigboid: 100%</div>
+        <div class="health-label boid" id="boidHealthLabel">Boids: 100%</div>
+    </div>
+
+    <div id="controls">
+        <div class="title">Enhanced Boid Simulation</div>
+        
+        <div class="control-section">
+            <div class="section-title performance">Performance Settings</div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="useInstancing" checked>
+                <label for="useInstancing">Use Instanced Rendering</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="useWebWorkers" checked>
+                <label for="useWebWorkers">Use Web Workers</label>
+            </div>
+            <div class="control-group">
+                <label>LOD Distance Threshold</label>
+                <input type="range" id="lodDistance" min="100" max="1000" step="50" value="400">
+                <div class="value-display" id="lodDistanceValue">400</div>
+            </div>
+        </div>
+        
+        <div class="control-section">
+            <div class="section-title environment">Environment</div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="showTerrain" checked>
+                <label for="showTerrain">Show Terrain</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="showObstacles" checked>
+                <label for="showObstacles">Show Obstacles</label>
+            </div>
+            <div class="control-group">
+                <label>Terrain Roughness</label>
+                <input type="range" id="terrainRoughness" min="0" max="100" step="5" value="50">
+                <div class="value-display" id="terrainRoughnessValue">50</div>
+            </div>
+            <div class="control-group">
+                <label>Obstacle Count</label>
+                <input type="range" id="obstacleCount" min="0" max="20" step="1" value="5">
+                <div class="value-display" id="obstacleCountValue">5</div>
+            </div>
+            <div class="control-group">
+                <label>Vertical Flocking Range</label>
+                <input type="range" id="verticalRange" min="50" max="500" step="10" value="200">
+                <div class="value-display" id="verticalRangeValue">200</div>
+            </div>
+        </div>
+        
+        <div class="control-section">
+            <div class="section-title general">General Settings</div>
+            <div class="control-group">
+                <label>Boid Count</label>
+                <input type="range" id="particleCount" min="1" max="10000" step="10" value="500">
+                <div class="value-display" id="particleCountValue">500</div>
+            </div>
+            
+            <div class="control-group">
+                <label>Speed Smoothing</label>
+                <input type="range" id="speedSmoothing" min="0.001" max="1.0" step="0.001" value="0.05">
+                <div class="value-display" id="speedSmoothingValue">0.05</div>
+            </div>
+            
+            <div class="control-group">
+                <label>3D Flocking Strength</label>
+                <input type="range" id="verticalFlockingStrength" min="0" max="2" step="0.1" value="1.0">
+                <div class="value-display" id="verticalFlockingStrengthValue">1.0</div>
+            </div>
+        </div>
+
+        <div class="control-section">
+            <div class="section-title prey">Prey Behavior (Boids)</div>
+            <div class="control-group">
+                <label>Calm Speed</label>
+                <input type="range" id="preyCalmSpeed" min="0.1" max="100" step="0.1" value="1.2">
+                <div class="value-display" id="preyCalmSpeedValue">1.2</div>
+            </div>
+            
+            <div class="control-group">
+                <label>Escape Speed</label>
+                <input type="range" id="preyEscapeSpeed" min="0.5" max="200" step="0.1" value="4.5">
+                <div class="value-display" id="preyEscapeSpeedValue">4.5</div>
+            </div>
+        </div>
+        
+        <div class="control-section">
+            <div class="section-title predator">Predator Behavior (Bigboid)</div>
+            <div class="control-group">
+                <label>Hunt Speed</label>
+                <input type="range" id="predatorHuntSpeed" min="0.5" max="200" step="0.1" value="4.5">
+                <div class="value-display" id="predatorHuntSpeedValue">4.5</div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="stats">
+        <div class="title" style="font-size: 14px; margin-bottom: 10px;">Enhanced Statistics</div>
+        
+        <div class="stat-section">
+            <strong>Population</strong>
+            <div class="stat-line">Living Boids: <span class="stat-value" id="livingBoidCount">500</span></div>
+            <div class="stat-line">LOD High: <span class="stat-value" id="lodHighCount">0</span></div>
+            <div class="stat-line">LOD Low: <span class="stat-value" id="lodLowCount">0</span></div>
+        </div>
+        
+        <div class="stat-section">
+            <strong>Performance</strong>
+            <div class="stat-line">FPS: <span class="performance-stat" id="fpsDisplay">60</span></div>
+            <div class="stat-line">Physics Time: <span class="performance-stat" id="physicsTime">0</span>ms</div>
+            <div class="stat-line">Render Time: <span class="performance-stat" id="renderTime">0</span>ms</div>
+            <div class="stat-line">Worker Status: <span class="performance-stat" id="workerStatus">Active</span></div>
+            <div class="stat-line">Draw Calls: <span class="performance-stat" id="drawCalls">1</span></div>
+        </div>
+        
+        <div class="stat-section">
+            <strong>Environment</strong>
+            <div class="stat-line">Active Obstacles: <span class="stat-value" id="activeObstacles">5</span></div>
+            <div class="stat-line">Terrain Height Range: <span class="stat-value" id="terrainHeightRange">0-0</span></div>
+            <div class="stat-line">3D Flocking Active: <span class="stat-value" id="3dFlockingActive">Yes</span></div>
+        </div>
+    </div>
+    
+    <div id="performanceMonitor">
+        <strong>Performance Monitor</strong>
+        <div class="stat-line">Instances/Frame: <span class="performance-stat" id="instancesPerFrame">0</span></div>
+        <div class="stat-line">Vertices/Frame: <span class="performance-stat" id="verticesPerFrame">0</span></div>
+        <div class="stat-line">Memory: <span class="performance-stat" id="memoryUsage">0MB</span></div>
+    </div>
+    
+    <div id="info">
+        <strong>Phase 1 Features</strong><br><br>
+        • WebGL2 Instanced Rendering<br>
+        • Web Workers for Physics<br>
+        • LOD System<br>
+        • 3D Terrain & Obstacles<br>
+        • Enhanced Vertical Flocking<br><br>
+        <strong>Controls:</strong><br>
+        • Mouse drag: Rotate view<br>
+        • Scroll: Zoom in/out
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // --- WebGL2 Check ---
+        if (!window.WebGL2RenderingContext) {
+            alert('WebGL2 is not supported in your browser. Some features may not work correctly.');
+        }
+
+        // --- Global Variables ---
+        let scene, camera, renderer;
+        let boidGeometry, boidMaterial;
+        let instancedMesh, boidMatrices = [];
+        let terrainMesh, obstacles = [];
+        let physicsWorker;
+        let useInstancing = true;
+        let useWebWorkers = true;
+        let isInitialized = false;
+
+        // --- Performance Tracking ---
+        let fps = 60;
+        let frameCount = 0;
+        let lastTime = performance.now();
+        let physicsTime = 0;
+        let renderStartTime = 0;
+
+        // --- Simulation Parameters ---
+        const MAX_BOIDS = 10000;
+        let boidCount = 500;
+        let lodDistance = 400;
+        let verticalRange = 200;
+        let terrainRoughness = 50;
+        let obstacleCount = 5;
+
+        // --- Camera Controls ---
+        let mouseX = 0, mouseY = 0;
+        let targetX = 0, targetY = 0;
+        let isMouseDown = false;
+        let cameraDistance = 600;
+
+        // --- Behavior Parameters ---
+        const behaviorParams = {
+            speedSmoothing: 0.05,
+            verticalFlockingStrength: 1.0,
+            prey: {
+                calmSpeed: 1.2,
+                escapeSpeed: 4.5
+            },
+            predator: {
+                huntSpeed: 4.5
+            }
+        };
+
+        // --- Boid Data Structures ---
+        let boidPositions = new Float32Array(MAX_BOIDS * 3);
+        let boidVelocities = new Float32Array(MAX_BOIDS * 3);
+        let boidStates = new Uint8Array(MAX_BOIDS); // 0: calm, 1: threatened
+        let boidLOD = new Uint8Array(MAX_BOIDS); // 0: high detail, 1: low detail
+        let workerReady = false;
+
+        // --- Single Entity (Bigboid) ---
+        let bigboidPosition = new THREE.Vector3();
+        let bigboidVelocity = new THREE.Vector3();
+        let bigboidMesh;
+
+        // --- Health System ---
+        const BIGBOID_MAX_HEALTH = 500;
+        let bigboidHealth = BIGBOID_MAX_HEALTH;
+        let startingBoidCount = 500;
+
+        // Initialize Three.js
+        function initThreeJS() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.fog = new THREE.Fog(0x0a0a0a, 200, 2000);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+            camera.position.set(0, 200, cameraDistance);
+
+            // Renderer with WebGL2
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('webgl2');
+            
+            if (!context) {
+                console.warn('WebGL2 not available, falling back to WebGL1');
+                renderer = new THREE.WebGLRenderer({ 
+                    antialias: true,
+                    powerPreference: "high-performance"
+                });
+            } else {
+                renderer = new THREE.WebGLRenderer({ 
+                    canvas: canvas,
+                    context: context,
+                    antialias: true,
+                    powerPreference: "high-performance"
+                });
+            }
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x0a0a0a);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.body.appendChild(renderer.domElement);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.8);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+            directionalLight.position.set(200, 400, 200);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            directionalLight.shadow.camera.near = 0.5;
+            directionalLight.shadow.camera.far = 1500;
+            directionalLight.shadow.camera.left = -500;
+            directionalLight.shadow.camera.right = 500;
+            directionalLight.shadow.camera.top = 500;
+            directionalLight.shadow.camera.bottom = -500;
+            scene.add(directionalLight);
+
+            // Add hemisphere light for better ambient
+            const hemisphereLight = new THREE.HemisphereLight(0x87CEEB, 0x545454, 0.4);
+            scene.add(hemisphereLight);
+        }
+
+        // Create Terrain
+        function createTerrain() {
+            const terrainGeometry = new THREE.PlaneGeometry(2000, 2000, 100, 100);
+            const vertices = terrainGeometry.attributes.position.array;
+            
+            // Apply Perlin-like noise for terrain
+            for (let i = 0; i < vertices.length; i += 3) {
+                const x = vertices[i];
+                const y = vertices[i + 1];
+                const noise = Math.sin(x * 0.01) * Math.cos(y * 0.01) * terrainRoughness;
+                vertices[i + 2] = noise + Math.random() * terrainRoughness * 0.3;
+            }
+            
+            terrainGeometry.computeVertexNormals();
+            
+            const terrainMaterial = new THREE.MeshLambertMaterial({
+                color: 0x3a5f3a,
+                wireframe: false
+            });
+            
+            terrainMesh = new THREE.Mesh(terrainGeometry, terrainMaterial);
+            terrainMesh.rotation.x = -Math.PI / 2;
+            terrainMesh.position.y = -100;
+            terrainMesh.receiveShadow = true;
+            scene.add(terrainMesh);
+        }
+
+        // Create Obstacles
+        function createObstacles() {
+            // Clear existing obstacles
+            obstacles.forEach(obstacle => {
+                scene.remove(obstacle);
+                obstacle.geometry.dispose();
+                obstacle.material.dispose();
+            });
+            obstacles = [];
+
+            const obstacleGeometry = new THREE.CylinderGeometry(20, 30, 100, 8);
+            const obstacleMaterial = new THREE.MeshLambertMaterial({ color: 0x666666 });
+
+            for (let i = 0; i < obstacleCount; i++) {
+                const obstacle = new THREE.Mesh(obstacleGeometry, obstacleMaterial);
+                obstacle.position.set(
+                    (Math.random() - 0.5) * 1000,
+                    0,
+                    (Math.random() - 0.5) * 1000
+                );
+                obstacle.castShadow = true;
+                obstacle.receiveShadow = true;
+                scene.add(obstacle);
+                obstacles.push(obstacle);
+            }
+        }
+
+        // Create Instanced Boids
+        function createInstancedBoids() {
+            // Create base geometry for boids
+            boidGeometry = new THREE.ConeGeometry(4, 12, 4);
+            boidGeometry.rotateX(-Math.PI / 2);
+            // No rotation on Y - boids should face forward naturally
+            
+            // Material with vertex colors and emissive glow
+            boidMaterial = new THREE.MeshLambertMaterial({
+                vertexColors: true,
+                emissive: 0xffffff,
+                emissiveIntensity: 0.3
+            });
+
+            // Create instanced mesh
+            instancedMesh = new THREE.InstancedMesh(boidGeometry, boidMaterial, MAX_BOIDS);
+            instancedMesh.castShadow = true;
+            instancedMesh.receiveShadow = true;
+            instancedMesh.count = boidCount;
+            scene.add(instancedMesh);
+
+            // Initialize matrices
+            const matrix = new THREE.Matrix4();
+            const position = new THREE.Vector3();
+            const quaternion = new THREE.Quaternion();
+            const scale = new THREE.Vector3(1, 1, 1);
+            const color = new THREE.Color();
+
+            for (let i = 0; i < MAX_BOIDS; i++) {
+                // Random initial positions
+                position.set(
+                    (Math.random() - 0.5) * 800,
+                    Math.random() * verticalRange,
+                    (Math.random() - 0.5) * 800
+                );
+                
+                boidPositions[i * 3] = position.x;
+                boidPositions[i * 3 + 1] = position.y;
+                boidPositions[i * 3 + 2] = position.z;
+
+                // Random initial velocities
+                boidVelocities[i * 3] = (Math.random() - 0.5) * 2;
+                boidVelocities[i * 3 + 1] = (Math.random() - 0.5) * 0.5;
+                boidVelocities[i * 3 + 2] = (Math.random() - 0.5) * 2;
+
+                // Set matrix
+                matrix.compose(position, quaternion, scale);
+                instancedMesh.setMatrixAt(i, matrix);
+
+                // Set color
+                color.setHSL(Math.random() * 0.2 + 0.5, 0.9, 0.8);
+                instancedMesh.setColorAt(i, color);
+
+                boidMatrices[i] = matrix.clone();
+            }
+
+            instancedMesh.instanceMatrix.needsUpdate = true;
+            instancedMesh.instanceColor.needsUpdate = true;
+        }
+
+        // Create Bigboid
+        function createBigboid() {
+            const geometry = new THREE.ConeGeometry(12, 30, 6);
+            geometry.rotateX(-Math.PI / 2);
+            geometry.rotateY(Math.PI); // Rotate 180 degrees to face forward
+            
+            const material = new THREE.MeshLambertMaterial({ 
+                color: 0x1e90ff,
+                emissive: 0x0040ff,
+                emissiveIntensity: 0.5
+            });
+            
+            bigboidMesh = new THREE.Mesh(geometry, material);
+            bigboidMesh.castShadow = true;
+            bigboidMesh.position.set(0, 50, 0);
+            scene.add(bigboidMesh);
+
+            bigboidPosition.set(0, 50, 0);
+            bigboidVelocity.set(Math.random() - 0.5, 0, Math.random() - 0.5).normalize().multiplyScalar(2);
+        }
+
+        // Initialize Web Worker
+        function initWebWorker() {
+            if (!useWebWorkers) return;
+
+            const workerCode = `
+                let positions, velocities, states;
+                let boidCount = 0;
+                let bigboidPos = { x: 0, y: 0, z: 0 };
+                let params = {};
+                let obstacles = [];
+                let verticalRange = 200;
+
+                self.onmessage = function(e) {
+                    if (!e.data) {
+                        console.error('Worker received empty message');
+                        return;
+                    }
+                    
+                    const messageData = e.data;
+                    
+                    switch(messageData.type) {
+                        case 'init':
+                            if (!messageData.data) {
+                                console.error('Worker init missing data');
+                                return;
+                            }
+                            positions = new Float32Array(messageData.data.positions);
+                            velocities = new Float32Array(messageData.data.velocities);
+                            states = new Uint8Array(messageData.data.states);
+                            boidCount = messageData.data.boidCount;
+                            params = messageData.data.params;
+                            verticalRange = messageData.data.verticalRange;
+                            
+                            self.postMessage({
+                                type: 'ready'
+                            });
+                            break;
+                            
+                        case 'update':
+                            if (!messageData.data) {
+                                console.error('Worker update missing data');
+                                return;
+                            }
+                            const startTime = performance.now();
+                            bigboidPos = messageData.data.bigboidPosition || { x: 0, y: 0, z: 0 };
+                            obstacles = messageData.data.obstacles || [];
+                            
+                            // Physics calculations
+                            for (let i = 0; i < boidCount; i++) {
+                                const idx = i * 3;
+                                
+                                // Get current position and velocity
+                                let px = positions[idx];
+                                let py = positions[idx + 1];
+                                let pz = positions[idx + 2];
+                                let vx = velocities[idx];
+                                let vy = velocities[idx + 1];
+                                let vz = velocities[idx + 2];
+                                
+                                // Flocking forces
+                                let fx = 0, fy = 0, fz = 0;
+                                let neighborCount = 0;
+                                let separationX = 0, separationY = 0, separationZ = 0;
+                                let alignmentX = 0, alignmentY = 0, alignmentZ = 0;
+                                let cohesionX = 0, cohesionY = 0, cohesionZ = 0;
+                                
+                                // Check neighbors
+                                for (let j = 0; j < boidCount; j++) {
+                                    if (i === j) continue;
+                                    
+                                    const jdx = j * 3;
+                                    const dx = positions[jdx] - px;
+                                    const dy = positions[jdx + 1] - py;
+                                    const dz = positions[jdx + 2] - pz;
+                                    const distSq = dx * dx + dy * dy + dz * dz;
+                                    
+                                    if (distSq < 10000 && distSq > 0.01) { // Within 100 units
+                                        const dist = Math.sqrt(distSq);
+                                        neighborCount++;
+                                        
+                                        // Separation
+                                        if (distSq < 625) { // 25 units
+                                            separationX -= dx / dist;
+                                            separationY -= dy / dist;
+                                            separationZ -= dz / dist;
+                                        }
+                                        
+                                        // Alignment
+                                        alignmentX += velocities[jdx];
+                                        alignmentY += velocities[jdx + 1];
+                                        alignmentZ += velocities[jdx + 2];
+                                        
+                                        // Cohesion
+                                        cohesionX += positions[jdx];
+                                        cohesionY += positions[jdx + 1];
+                                        cohesionZ += positions[jdx + 2];
+                                    }
+                                }
+                                
+                                if (neighborCount > 0) {
+                                    // Apply flocking rules
+                                    fx += separationX * 1.5;
+                                    fy += separationY * 1.5 * params.verticalFlockingStrength;
+                                    fz += separationZ * 1.5;
+                                    
+                                    alignmentX /= neighborCount;
+                                    alignmentY /= neighborCount;
+                                    alignmentZ /= neighborCount;
+                                    fx += (alignmentX - vx) * 0.05;
+                                    fy += (alignmentY - vy) * 0.05 * params.verticalFlockingStrength;
+                                    fz += (alignmentZ - vz) * 0.05;
+                                    
+                                    cohesionX /= neighborCount;
+                                    cohesionY /= neighborCount;
+                                    cohesionZ /= neighborCount;
+                                    fx += (cohesionX - px) * 0.01;
+                                    fy += (cohesionY - py) * 0.01 * params.verticalFlockingStrength;
+                                    fz += (cohesionZ - pz) * 0.01;
+                                }
+                                
+                                // Predator avoidance
+                                const predDx = bigboidPos.x - px;
+                                const predDy = bigboidPos.y - py;
+                                const predDz = bigboidPos.z - pz;
+                                const predDistSq = predDx * predDx + predDy * predDy + predDz * predDz;
+                                
+                                if (predDistSq < 14400) { // 120 units detection range
+                                    states[i] = 1; // Threatened
+                                    const predDist = Math.sqrt(predDistSq);
+                                    fx -= (predDx / predDist) * 3;
+                                    fy -= (predDy / predDist) * 3;
+                                    fz -= (predDz / predDist) * 3;
+                                } else {
+                                    states[i] = 0; // Calm
+                                }
+                                
+                                // Obstacle avoidance
+                                for (let obs of obstacles) {
+                                    const obsDx = obs.x - px;
+                                    const obsDy = obs.y - py;
+                                    const obsDz = obs.z - pz;
+                                    const obsDistSq = obsDx * obsDx + obsDy * obsDy + obsDz * obsDz;
+                                    
+                                    if (obsDistSq < 2500) { // 50 units avoidance radius
+                                        const obsDist = Math.sqrt(obsDistSq);
+                                        fx -= (obsDx / obsDist) * 5;
+                                        fy -= (obsDy / obsDist) * 5;
+                                        fz -= (obsDz / obsDist) * 5;
+                                    }
+                                }
+                                
+                                // Boundary forces
+                                if (Math.abs(px) > 400) fx -= px * 0.01;
+                                if (py < 10) fy += (10 - py) * 0.1;
+                                if (py > verticalRange) fy -= (py - verticalRange) * 0.1;
+                                if (Math.abs(pz) > 400) fz -= pz * 0.01;
+                                
+                                // Apply forces to velocity
+                                vx += fx * 0.1;
+                                vy += fy * 0.1;
+                                vz += fz * 0.1;
+                                
+                                // Speed limits
+                                const speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
+                                const targetSpeed = states[i] === 1 ? params.prey.escapeSpeed : params.prey.calmSpeed;
+                                if (speed > 0.01) {
+                                    const speedScale = Math.min(speed, targetSpeed) / speed;
+                                    vx *= speedScale;
+                                    vy *= speedScale;
+                                    vz *= speedScale;
+                                }
+                                
+                                // Update position
+                                px += vx;
+                                py += vy;
+                                pz += vz;
+                                
+                                // Store updated values
+                                positions[idx] = px;
+                                positions[idx + 1] = py;
+                                positions[idx + 2] = pz;
+                                velocities[idx] = vx;
+                                velocities[idx + 1] = vy;
+                                velocities[idx + 2] = vz;
+                            }
+                            
+                            const physicsTime = performance.now() - startTime;
+                            
+                            // Create copies for transfer
+                            const positionsCopy = positions.slice();
+                            const velocitiesCopy = velocities.slice();
+                            const statesCopy = states.slice();
+                            
+                            // Send back results
+                            self.postMessage({
+                                type: 'update',
+                                positions: positionsCopy.buffer,
+                                velocities: velocitiesCopy.buffer,
+                                states: statesCopy.buffer,
+                                physicsTime: physicsTime
+                            }, [positionsCopy.buffer, velocitiesCopy.buffer, statesCopy.buffer]);
+                            break;
+                    }
+                };
+            `;
+
+            const blob = new Blob([workerCode], { type: 'application/javascript' });
+            const workerUrl = URL.createObjectURL(blob);
+            
+            try {
+                physicsWorker = new Worker(workerUrl);
+            } catch (error) {
+                console.error('Failed to create Web Worker:', error);
+                useWebWorkers = false;
+                document.getElementById('useWebWorkers').checked = false;
+                document.getElementById('workerStatus').textContent = 'Failed';
+                return;
+            }
+
+            physicsWorker.onerror = function(error) {
+                console.error('Web Worker error:', error);
+                useWebWorkers = false;
+                workerReady = false;
+                document.getElementById('useWebWorkers').checked = false;
+                document.getElementById('workerStatus').textContent = 'Error';
+            };
+
+            physicsWorker.onmessage = function(e) {
+                if (e.data.type === 'ready') {
+                    workerReady = true;
+                    console.log('Physics worker ready');
+                } else if (e.data.type === 'update') {
+                    // Update arrays from worker
+                    boidPositions = new Float32Array(e.data.positions);
+                    boidVelocities = new Float32Array(e.data.velocities);
+                    boidStates = new Uint8Array(e.data.states);
+                    physicsTime = e.data.physicsTime;
+                    
+                    updateInstancedMeshFromWorker();
+                }
+            };
+
+            // Initialize worker with data
+            physicsWorker.postMessage({
+                type: 'init',
+                data: {
+                    positions: boidPositions.buffer,
+                    velocities: boidVelocities.buffer,
+                    states: boidStates.buffer,
+                    boidCount: boidCount,
+                    params: behaviorParams,
+                    verticalRange: verticalRange
+                }
+            }, [boidPositions.buffer.slice(), boidVelocities.buffer.slice(), boidStates.buffer.slice()]);
+        }
+
+        // Update instanced mesh from worker data
+        function updateInstancedMeshFromWorker() {
+            const matrix = new THREE.Matrix4();
+            const position = new THREE.Vector3();
+            const direction = new THREE.Vector3();
+            const quaternion = new THREE.Quaternion();
+            const scale = new THREE.Vector3();
+            const color = new THREE.Color();
+            const up = new THREE.Vector3(0, 1, 0);
+            const forward = new THREE.Vector3(0, 0, -1); // Negative Z is forward after rotations
+
+            let lodHighCount = 0;
+            let lodLowCount = 0;
+
+            for (let i = 0; i < boidCount; i++) {
+                const idx = i * 3;
+                position.set(boidPositions[idx], boidPositions[idx + 1], boidPositions[idx + 2]);
+                
+                // LOD calculation
+                const distToCameraSq = position.distanceToSquared(camera.position);
+                const isLowDetail = distToCameraSq > lodDistance * lodDistance;
+                boidLOD[i] = isLowDetail ? 1 : 0;
+                
+                if (isLowDetail) {
+                    lodLowCount++;
+                    scale.set(0.8, 0.8, 0.8); // Less reduction for better visibility
+                } else {
+                    lodHighCount++;
+                    scale.set(1.2, 1.2, 1.2); // Slightly larger for near boids
+                }
+
+                // Calculate rotation from velocity
+                direction.set(boidVelocities[idx], boidVelocities[idx + 1], boidVelocities[idx + 2]);
+                if (direction.lengthSq() > 0.001) {
+                    direction.normalize();
+                    // Create quaternion to align with velocity direction
+                    quaternion.setFromUnitVectors(forward, direction);
+                }
+
+                // Update matrix
+                matrix.compose(position, quaternion, scale);
+                instancedMesh.setMatrixAt(i, matrix);
+
+                // Update color based on state
+                if (boidStates[i] === 1) { // Threatened
+                    color.setHSL(0.0, 0.9, 0.7); // Brighter red
+                    instancedMesh.setColorAt(i, color);
+                } else { // Calm
+                    color.setHSL(0.55, 0.8, 0.7); // Brighter cyan
+                    instancedMesh.setColorAt(i, color);
+                }
+            }
+
+            instancedMesh.instanceMatrix.needsUpdate = true;
+            instancedMesh.instanceColor.needsUpdate = true;
+
+            // Update stats
+            document.getElementById('lodHighCount').textContent = lodHighCount;
+            document.getElementById('lodLowCount').textContent = lodLowCount;
+        }
+
+        // Update Bigboid
+        function updateBigboid() {
+            // Simple hunting behavior
+            let targetFound = false;
+            let closestDist = Infinity;
+            let targetPos = new THREE.Vector3();
+
+            for (let i = 0; i < boidCount; i++) {
+                const idx = i * 3;
+                const dist = bigboidPosition.distanceTo(
+                    new THREE.Vector3(boidPositions[idx], boidPositions[idx + 1], boidPositions[idx + 2])
+                );
+                if (dist < closestDist) {
+                    closestDist = dist;
+                    targetPos.set(boidPositions[idx], boidPositions[idx + 1], boidPositions[idx + 2]);
+                    targetFound = true;
+                }
+            }
+
+            if (targetFound && closestDist < 300) {
+                // Hunt mode
+                const direction = targetPos.clone().sub(bigboidPosition).normalize();
+                bigboidVelocity.lerp(direction.multiplyScalar(behaviorParams.predator.huntSpeed), 0.05);
+            } else {
+                // Wander mode
+                bigboidVelocity.x += (Math.random() - 0.5) * 0.1;
+                bigboidVelocity.y += (Math.random() - 0.5) * 0.05;
+                bigboidVelocity.z += (Math.random() - 0.5) * 0.1;
+            }
+
+            // Apply velocity limits
+            bigboidVelocity.clampLength(0.5, behaviorParams.predator.huntSpeed);
+
+            // Update position
+            bigboidPosition.add(bigboidVelocity);
+
+            // Boundary constraints
+            if (Math.abs(bigboidPosition.x) > 500) bigboidVelocity.x *= -1;
+            if (bigboidPosition.y < 20) bigboidVelocity.y = Math.abs(bigboidVelocity.y);
+            if (bigboidPosition.y > verticalRange + 50) bigboidVelocity.y = -Math.abs(bigboidVelocity.y);
+            if (Math.abs(bigboidPosition.z) > 500) bigboidVelocity.z *= -1;
+
+            // Update mesh
+            bigboidMesh.position.copy(bigboidPosition);
+            if (bigboidVelocity.lengthSq() > 0.01) {
+                bigboidMesh.lookAt(bigboidPosition.clone().add(bigboidVelocity));
+            }
+        }
+
+        // Physics update (non-worker fallback)
+        function updatePhysicsLocal() {
+            const startTime = performance.now();
+
+            // Update each boid
+            for (let i = 0; i < boidCount; i++) {
+                const idx = i * 3;
+                
+                // Simple flocking behavior
+                let vx = boidVelocities[idx];
+                let vy = boidVelocities[idx + 1];
+                let vz = boidVelocities[idx + 2];
+
+                // Add some randomness
+                vx += (Math.random() - 0.5) * 0.1;
+                vy += (Math.random() - 0.5) * 0.05;
+                vz += (Math.random() - 0.5) * 0.1;
+
+                // Boundary avoidance
+                if (Math.abs(boidPositions[idx]) > 400) vx *= -0.9;
+                if (boidPositions[idx + 1] < 10) vy = Math.abs(vy);
+                if (boidPositions[idx + 1] > verticalRange) vy = -Math.abs(vy);
+                if (Math.abs(boidPositions[idx + 2]) > 400) vz *= -0.9;
+
+                // Speed limit
+                const speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
+                if (speed > behaviorParams.prey.calmSpeed) {
+                    const scale = behaviorParams.prey.calmSpeed / speed;
+                    vx *= scale;
+                    vy *= scale;
+                    vz *= scale;
+                }
+
+                // Update velocity and position
+                boidVelocities[idx] = vx;
+                boidVelocities[idx + 1] = vy;
+                boidVelocities[idx + 2] = vz;
+
+                boidPositions[idx] += vx;
+                boidPositions[idx + 1] += vy;
+                boidPositions[idx + 2] += vz;
+            }
+
+            physicsTime = performance.now() - startTime;
+        }
+
+        // Update instanced mesh (local physics)
+        function updateInstancedMeshLocal() {
+            const matrix = new THREE.Matrix4();
+            const position = new THREE.Vector3();
+            const quaternion = new THREE.Quaternion();
+            const scale = new THREE.Vector3(1, 1, 1);
+
+            for (let i = 0; i < boidCount; i++) {
+                const idx = i * 3;
+                position.set(boidPositions[idx], boidPositions[idx + 1], boidPositions[idx + 2]);
+                
+                matrix.compose(position, quaternion, scale);
+                instancedMesh.setMatrixAt(i, matrix);
+            }
+
+            instancedMesh.instanceMatrix.needsUpdate = true;
+        }
+
+        // Update health bar
+        function updateHealthBar() {
+            const livingBoids = boidCount; // Simplified for Phase 1
+            const boidHP = livingBoids / startingBoidCount;
+            const bigboidHP = bigboidHealth / BIGBOID_MAX_HEALTH;
+
+            document.getElementById('fishHealthBar').style.width = (bigboidHP * 50) + '%';
+            document.getElementById('boidHealthBar').style.width = (boidHP * 50) + '%';
+            document.getElementById('fishHealthLabel').textContent = `Bigboid: ${Math.round(bigboidHP * 100)}%`;
+            document.getElementById('boidHealthLabel').textContent = `Boids: ${Math.round(boidHP * 100)}%`;
+        }
+
+        // Main animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            renderStartTime = performance.now();
+
+            // Update FPS
+            frameCount++;
+            const currentTime = performance.now();
+            if (currentTime >= lastTime + 1000) {
+                fps = frameCount;
+                frameCount = 0;
+                lastTime = currentTime;
+                document.getElementById('fpsDisplay').textContent = fps;
+                document.getElementById('perfFPS').textContent = fps;
+            }
+
+            // Camera controls
+            camera.position.x = Math.cos(targetX) * Math.cos(targetY) * cameraDistance;
+            camera.position.y = Math.sin(targetY) * cameraDistance + 100;
+            camera.position.z = Math.sin(targetX) * Math.cos(targetY) * cameraDistance;
+            camera.lookAt(0, 50, 0);
+
+            // Update bigboid
+            updateBigboid();
+
+            // Physics update
+            if (useWebWorkers && physicsWorker && workerReady) {
+                // Send update to worker
+                const obstacleData = obstacles.map(o => ({
+                    x: o.position.x,
+                    y: o.position.y,
+                    z: o.position.z
+                }));
+
+                physicsWorker.postMessage({
+                    type: 'update',
+                    data: {
+                        bigboidPosition: {
+                            x: bigboidPosition.x,
+                            y: bigboidPosition.y,
+                            z: bigboidPosition.z
+                        },
+                        obstacles: obstacleData
+                    }
+                });
+            } else {
+                // Local physics update
+                updatePhysicsLocal();
+                if (useInstancing) {
+                    updateInstancedMeshLocal();
+                }
+            }
+
+            // Render
+            renderer.render(scene, camera);
+
+            // Update stats
+            const renderTime = performance.now() - renderStartTime;
+            document.getElementById('renderTime').textContent = renderTime.toFixed(1);
+            document.getElementById('physicsTime').textContent = physicsTime.toFixed(1);
+            document.getElementById('livingBoidCount').textContent = boidCount;
+            document.getElementById('perfBoids').textContent = boidCount;
+            document.getElementById('instancesPerFrame').textContent = useInstancing ? boidCount : 0;
+            document.getElementById('verticesPerFrame').textContent = 
+                useInstancing ? (boidGeometry.attributes.position.count * boidCount) : 0;
+            document.getElementById('drawCalls').textContent = useInstancing ? 1 : boidCount;
+            
+            if (performance.memory) {
+                document.getElementById('memoryUsage').textContent = 
+                    (performance.memory.usedJSHeapSize / 1048576).toFixed(1) + 'MB';
+            }
+
+            updateHealthBar();
+        }
+
+        // Event Listeners
+        document.addEventListener('mousedown', (e) => { 
+            if(e.target === renderer.domElement) { 
+                isMouseDown = true; 
+                mouseX = e.clientX; 
+                mouseY = e.clientY; 
+            }
+        });
+
+        document.addEventListener('mouseup', () => { isMouseDown = false; });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isMouseDown) {
+                targetX += (e.clientX - mouseX) * 0.005;
+                targetY += (e.clientY - mouseY) * 0.005;
+                targetY = Math.max(-Math.PI/2.1, Math.min(Math.PI/2.1, targetY));
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+            }
+        });
+
+        document.addEventListener('wheel', (e) => {
+            if (e.target === renderer.domElement) {
+                cameraDistance += e.deltaY * 0.5;
+                cameraDistance = Math.max(100, Math.min(2000, cameraDistance));
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Control panel listeners
+        document.getElementById('useInstancing').addEventListener('change', (e) => {
+            useInstancing = e.target.checked;
+            document.getElementById('instancedStatus').textContent = useInstancing ? 'Enabled' : 'Disabled';
+        });
+
+        document.getElementById('useWebWorkers').addEventListener('change', (e) => {
+            useWebWorkers = e.target.checked;
+            document.getElementById('workerStatus').textContent = useWebWorkers ? 'Active' : 'Inactive';
+            if (useWebWorkers && !physicsWorker) {
+                workerReady = false;
+                initWebWorker();
+            }
+        });
+
+        document.getElementById('lodDistance').addEventListener('input', (e) => {
+            lodDistance = parseInt(e.target.value);
+            document.getElementById('lodDistanceValue').textContent = lodDistance;
+        });
+
+        document.getElementById('showTerrain').addEventListener('change', (e) => {
+            if (terrainMesh) terrainMesh.visible = e.target.checked;
+        });
+
+        document.getElementById('showObstacles').addEventListener('change', (e) => {
+            obstacles.forEach(o => o.visible = e.target.checked);
+        });
+
+        document.getElementById('terrainRoughness').addEventListener('input', (e) => {
+            terrainRoughness = parseInt(e.target.value);
+            document.getElementById('terrainRoughnessValue').textContent = terrainRoughness;
+            if (terrainMesh) {
+                scene.remove(terrainMesh);
+                terrainMesh.geometry.dispose();
+                terrainMesh.material.dispose();
+                createTerrain();
+            }
+        });
+
+        document.getElementById('obstacleCount').addEventListener('input', (e) => {
+            obstacleCount = parseInt(e.target.value);
+            document.getElementById('obstacleCountValue').textContent = obstacleCount;
+            createObstacles();
+            document.getElementById('activeObstacles').textContent = obstacleCount;
+        });
+
+        document.getElementById('particleCount').addEventListener('input', (e) => {
+            boidCount = parseInt(e.target.value);
+            document.getElementById('particleCountValue').textContent = boidCount;
+            instancedMesh.count = boidCount;
+            startingBoidCount = boidCount;
+        });
+
+        document.getElementById('verticalRange').addEventListener('input', (e) => {
+            verticalRange = parseInt(e.target.value);
+            document.getElementById('verticalRangeValue').textContent = verticalRange;
+            document.getElementById('terrainHeightRange').textContent = `0-${verticalRange}`;
+        });
+
+        document.getElementById('speedSmoothing').addEventListener('input', (e) => {
+            behaviorParams.speedSmoothing = parseFloat(e.target.value);
+            document.getElementById('speedSmoothingValue').textContent = behaviorParams.speedSmoothing.toFixed(3);
+        });
+
+        document.getElementById('verticalFlockingStrength').addEventListener('input', (e) => {
+            behaviorParams.verticalFlockingStrength = parseFloat(e.target.value);
+            document.getElementById('verticalFlockingStrengthValue').textContent = behaviorParams.verticalFlockingStrength.toFixed(1);
+        });
+
+        document.getElementById('preyCalmSpeed').addEventListener('input', (e) => {
+            behaviorParams.prey.calmSpeed = parseFloat(e.target.value);
+            document.getElementById('preyCalmSpeedValue').textContent = behaviorParams.prey.calmSpeed.toFixed(1);
+        });
+
+        document.getElementById('preyEscapeSpeed').addEventListener('input', (e) => {
+            behaviorParams.prey.escapeSpeed = parseFloat(e.target.value);
+            document.getElementById('preyEscapeSpeedValue').textContent = behaviorParams.prey.escapeSpeed.toFixed(1);
+        });
+
+        document.getElementById('predatorHuntSpeed').addEventListener('input', (e) => {
+            behaviorParams.predator.huntSpeed = parseFloat(e.target.value);
+            document.getElementById('predatorHuntSpeedValue').textContent = behaviorParams.predator.huntSpeed.toFixed(1);
+        });
+
+        // Initialize
+        function init() {
+            document.getElementById('loadingIndicator').style.display = 'block';
+            
+            initThreeJS();
+            createTerrain();
+            createObstacles();
+            createInstancedBoids();
+            createBigboid();
+            
+            if (useWebWorkers) {
+                initWebWorker();
+            }
+            
+            document.getElementById('activeObstacles').textContent = obstacleCount;
+            document.getElementById('terrainHeightRange').textContent = `0-${verticalRange}`;
+            updateHealthBar();
+            
+            setTimeout(() => {
+                document.getElementById('loadingIndicator').style.display = 'none';
+                isInitialized = true;
+                animate();
+            }, 1000);
+        }
+
+        // Start the application
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
